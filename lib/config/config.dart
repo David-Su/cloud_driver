@@ -1,0 +1,16 @@
+class NetworkConfig {
+  static const String urlBase = "http://127.0.0.1:8080/CloudDriver";
+  static const String apiLogin = "/login";
+  static const int timeoutConnect = 2000;
+  static const int timeoutReceive = 5000;
+
+  static const String codeOk = "0000";
+  //token过期
+  static const String codeTokenTimeOut= "0002";
+  //账号或密码错误
+  static const String codeUnOrPwError= "0003";
+}
+
+class SpConfig {
+  static const String keyToken= "key_token";
+}
