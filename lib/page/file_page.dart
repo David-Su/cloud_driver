@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:html';
+import 'dart:js' as js;
 
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/manager/dio_manager.dart';
@@ -7,6 +8,8 @@ import 'package:cloud_driver/model/entity/delete_file_entity.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:mime/mime.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FilePage extends StatefulWidget {
   @override
@@ -82,10 +85,22 @@ class _FilePageState extends State<FilePage> {
                               return;
                             }
 
+                            final mimeType = lookupMimeType(file.name);
+
+                            print(
+                                "onSecondaryTapUp: lookupMimeType->${lookupMimeType(file.name)}");
+
+                            // lookupMimeType(file.name);
+
                             const idDelete = 0;
                             const idDownload = 1;
+                            const idPlayVideo = 2;
 
                             final data = {idDelete: "删除", idDownload: "下载"};
+
+                            if (mimeType?.startsWith("video") == true) {
+                              data.addAll({idPlayVideo: "使用potPlayer播放"});
+                            }
 
                             final overlay = Overlay.of(context)
                                 ?.context
@@ -121,6 +136,19 @@ class _FilePageState extends State<FilePage> {
                                     context: context);
                                 break;
                               case idDownload:
+                                final anchor = AnchorElement(href: await _getDownloadUrl(file));
+                                // add the name
+                                anchor.download = file.name;
+
+                                // trigger download
+                                document.body?.append(anchor);
+                                anchor.click();
+                                anchor.remove();
+                                break;
+                              case idPlayVideo:
+                                final videoUrl = await _getDownloadUrl(file);
+                                js.context.callMethod(
+                                    'openVideoUrlWithSysProgram', [videoUrl]);
                                 break;
                             }
                           },
@@ -177,4 +205,19 @@ class _FilePageState extends State<FilePage> {
         height: 20,
         color: Colors.grey,
       );
+
+  List<String> _getPathList(ListFileResult fileResult) {
+    final paths = _path.map((e) => e.name).toList();
+    paths.add(fileResult.name);
+    return paths;
+  }
+
+  Future<String> _getDownloadUrl(ListFileResult fileResult) async {
+    final filePaths = StringBuffer();
+    filePaths.writeAll(_getPathList(fileResult), ",");
+
+    final sp = await SharedPreferences.getInstance();
+
+    return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=${filePaths.toString()}";
+  }
 }
