@@ -1,6 +1,9 @@
 class NetworkConfig {
   static const String urlBase = "http://127.0.0.1:8080/CloudDriver";
   static const String apiLogin = "/login";
+  static const String apiListFile = "/listfile";
+  static const String apiCreateDir = "/createdir";
+  static const String apiDeleteFile = "/deletefile";
   static const int timeoutConnect = 2000;
   static const int timeoutReceive = 5000;
 

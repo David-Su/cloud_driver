@@ -1,4 +1,5 @@
-import 'package:cloud_driver/page/login.dart';
+import 'package:cloud_driver/page/file_page.dart';
+import 'package:cloud_driver/page/login_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -28,7 +29,8 @@ class MyApp extends StatelessWidget {
       initialRoute: "/login",
       routes: {
         "/home": (BuildContext context) => const MyHomePage(title: ""),
-        "/login": (BuildContext context) => LoginPage()
+        "/login": (BuildContext context) => LoginPage(),
+        "/file": (BuildContext context) => FilePage()
       },
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
