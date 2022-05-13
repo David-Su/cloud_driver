@@ -30,25 +30,29 @@ class DioManager {
           data,
           required Transformer<T> transformer,
           required BuildContext context,
+          ProgressCallback? onSendProgress,
           Handler? interceptor}) =>
-      defaultDio.post(api, data: data).then((value) {
-            BaseEntity<T> baseEntity =
-                transformer.call(json.decode(value.toString()));
+      defaultDio
+          .post(api, data: data, onSendProgress: onSendProgress)
+          .then((value) {
+        BaseEntity<T> baseEntity =
+            transformer.call(json.decode(value.toString()));
 
-            if (interceptor != null) {
-              return interceptor.call(baseEntity);
-            }
+        if (interceptor != null) {
+          return interceptor.call(baseEntity);
+        }
 
-            switch (baseEntity.code) {
-              case NetworkConfig.codeOk:
-                return baseEntity.result;
-              case NetworkConfig.codeTokenTimeOut:
-                break;
-              case NetworkConfig.codeUnOrPwError:
-                break;
-            }
-            return null;
-          });
+        switch (baseEntity.code) {
+          case NetworkConfig.codeOk:
+            return baseEntity.result;
+          case NetworkConfig.codeTokenTimeOut:
+            Navigator.of(context).popAndPushNamed("/login");
+            break;
+          case NetworkConfig.codeUnOrPwError:
+            break;
+        }
+        return null;
+      });
 }
 
 class MyInterceptor extends Interceptor {

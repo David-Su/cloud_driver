@@ -5,6 +5,7 @@ class NetworkConfig {
   static const String apiCreateDir = "/createdir";
   static const String apiDeleteFile = "/deletefile";
   static const String apiDownloadFile = "/downloadfile";
+  static const String apiUploadFile = "/uploadfile";
   static const int timeoutConnect = 2000;
   static const int timeoutReceive = 5000;
 

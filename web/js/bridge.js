@@ -1,3 +1,3 @@
-function openVideoUrlWithSysProgram(url) {
-	window.open("potplayer://" + url);
-}
+//function openVideoUrlWithSysProgram(url) {
+//	window.open("potplayer://" + url);
+//}

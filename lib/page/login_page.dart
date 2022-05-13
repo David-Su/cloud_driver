@@ -36,7 +36,7 @@ class LoginPage extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           var futureSp =
-                              Future(() => SharedPreferences.getInstance());
+                          Future(() => SharedPreferences.getInstance());
 
                           var futureLogin = DioManager().doPost(
                               api: NetworkConfig.apiLogin,
@@ -53,14 +53,14 @@ class LoginPage extends StatelessWidget {
                             if (result == null) return;
 
                             SharedPreferences sp =
-                                value[0] as SharedPreferences;
+                            value[0] as SharedPreferences;
 
                             sp.setString(SpConfig.keyToken, result.token);
 
                             print(
                                 "本地token->${sp.getString(SpConfig.keyToken)}");
                           }).then((value) =>
-                              Navigator.of(context).pushNamed("/file"));
+                              Navigator.of(context).popAndPushNamed("/file"));
                         },
                         icon: const Icon(Icons.login),
                         label: const Text("登录"),
