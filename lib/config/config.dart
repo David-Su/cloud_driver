@@ -1,5 +1,6 @@
 class NetworkConfig {
   static const String urlBase = "http://127.0.0.1:8080/CloudDriver";
+  // static const String urlBase = "http://8.218.97.215:8080/CloudDriver";
   static const String apiLogin = "/login";
   static const String apiListFile = "/listfile";
   static const String apiCreateDir = "/createdir";
@@ -14,6 +15,8 @@ class NetworkConfig {
   static const String codeTokenTimeOut= "0002";
   //账号或密码错误
   static const String codeUnOrPwError= "0003";
+  //创建文件目录失败
+  static const String codeCreateDirFail= "0004";
 }
 
 class SpConfig {

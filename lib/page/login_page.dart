@@ -48,7 +48,7 @@ class LoginPage extends StatelessWidget {
                               context: context);
 
                           Future.wait([futureSp, futureLogin]).then((value) {
-                            LoginResult? result = value[1] as LoginResult?;
+                            LoginResult? result = (value[1] as LoginEntity?)?.result;
 
                             if (result == null) return;
 

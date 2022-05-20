@@ -1,11 +1,13 @@
-import 'dart:convert';
 import 'dart:html' as html;
 
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/manager/dio_manager.dart';
+import 'package:cloud_driver/model/entity/base_entity.dart';
+import 'package:cloud_driver/model/entity/create_dir_entity.dart';
 import 'package:cloud_driver/model/entity/delete_file_entity.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,99 +20,217 @@ class _FilePageState extends State<FilePage> {
   ListFileResult? _allFile;
   final List<ListFileResult> _paths = [];
 
+  final _fToast = FToast();
+
   @override
   Widget build(BuildContext context) {
     final children = _paths.isNotEmpty ? _paths.last.children : null;
-
     return WillPopScope(
       child: Scaffold(
         appBar: AppBar(
           title: const Text("文件"),
           automaticallyImplyLeading: false,
         ),
-        body: ListView(
-          shrinkWrap: true,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          // shrinkWrap: true,
           // mainAxisSize: MainAxisSize.min,
           children: [
-            TextButton.icon(
-                onPressed: () {
-                  final element = html.FileUploadInputElement();
-                  element.multiple = false;
-                  element.draggable = false;
-                  element.click();
+            Padding(
+                padding: const EdgeInsets.fromLTRB(5, 7, 0, 15),
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                        onPressed: () {
+                          final element = html.FileUploadInputElement();
+                          element.multiple = false;
+                          element.draggable = false;
+                          element.click();
 
-                  element.onChange.listen((event) async {
-                    final files = element.files;
-                    if (files == null || files.isEmpty == true) {
-                      return;
-                    }
-                    final file = files[0];
+                          element.onChange.listen((event) async {
+                            final files = element.files;
+                            if (files == null || files.isEmpty == true) {
+                              return;
+                            }
+                            final file = files[0];
 
-                    final formData = html.FormData();
-                    final token = (await SharedPreferences.getInstance())
-                        .getString(SpConfig.keyToken);
-                    final filePath = _getFilePath();
-                    final request = html.HttpRequest();
-                    int loaded = 0;
-                    int total = 0;
-                    StateSetter? dialogState;
-                    bool uploadFinish = false;
+                            final formData = html.FormData();
+                            final token =
+                                (await SharedPreferences.getInstance())
+                                    .getString(SpConfig.keyToken);
+                            final filePath = _getFilePath();
+                            final request = html.HttpRequest();
 
-                    request.open("POST",
-                        "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
-                    request.upload.onProgress.listen((event) {
-                      loaded = event.loaded ?? 0;
-                      total = event.total ?? 0;
+                            double progress = 0;
+                            StateSetter? dialogState;
+                            late BuildContext dialog;
 
-                      if (total != 0) {
-                        dialogState?.call(() {});
-                      }
-                    });
+                            request.open("POST",
+                                "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
+                            request.upload.onProgress.listen((event) {
+                              final loaded = event.loaded ?? 0;
+                              final total = event.total ?? 0;
 
-                    request.onLoad.listen((event) {
-                      print("上传完成");
-                      dialogState?.call(() {
-                        uploadFinish = true;
-                      });
-                      _refresh();
-                    });
-                    formData.appendBlob("file", file, file.name);
-                    request.send(formData);
+                              dialogState?.call(() {
+                                progress =
+                                    total == 0 ? progress : loaded / total;
+                              });
+                            });
 
-                    showDialog(
-                        barrierDismissible: false,
-                        context: context,
-                        builder: (BuildContext dialogContext) =>
-                            StatefulBuilder(builder:
-                                (BuildContext context, StateSetter setState) {
-                              if (uploadFinish) {
-                                print("pop");
-                                Navigator.of(dialogContext).pop();
-                              }
-                              dialogState = setState;
-                              final progress =
-                                  "${((loaded / total) * 100).toInt().toString()}%";
-                              return Dialog(
-                                child: Text(progress),
-                              );
-                            }));
-                  });
-                },
-                icon: const Icon(Icons.cloud_upload_rounded),
-                label: const Text("上传文件")),
+                            request.upload.onLoadEnd.listen((event) {
+                              print("上传完成");
+                              Navigator.of(dialog).pop();
+                              _refresh();
+                            });
+
+                            formData.appendBlob("file", file, file.name);
+                            request.send(formData);
+
+                            showDialog(
+                                barrierDismissible: false,
+                                context: context,
+                                builder: (BuildContext dialogContext) {
+                                  dialog = dialogContext;
+                                  return StatefulBuilder(builder:
+                                      (BuildContext context,
+                                          StateSetter setState) {
+                                    print("更新进度条");
+                                    dialogState = setState;
+                                    return Material(
+                                      child: Center(
+                                        child: Container(
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      25, 15, 25, 15),
+                                              child: Column(
+                                                children: [
+                                                  CircularProgressIndicator(
+                                                    value: progress,
+                                                  ),
+                                                  const Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 5)),
+                                                  Text(
+                                                      "${(progress * 100).toInt().toString()}%")
+                                                ],
+                                                mainAxisSize: MainAxisSize.min,
+                                              ),
+                                            ),
+                                            decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(8))),
+                                      ),
+                                      color: Colors.transparent,
+                                    );
+                                  });
+                                });
+                          });
+                        },
+                        style: ButtonStyle(
+                            shape: MaterialStateProperty.all(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)))),
+                        icon: const Icon(Icons.cloud_upload_rounded),
+                        label: const Text("上传文件")),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 5),
+                    ),
+                    ElevatedButton.icon(
+                        onPressed: () async {
+                          final controller = TextEditingController();
+
+                          final confirm = await showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) => AlertDialog(
+                                    title: const Text("请输入文件夹名字"),
+                                    content: TextField(
+                                      controller: controller,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
+                                          child: const Text("确定")),
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(false),
+                                          child: const Text("取消"))
+                                    ],
+                                  ));
+
+                          final name = controller.text;
+
+                          if (!confirm || name.isEmpty) {
+                            return;
+                          }
+
+                          final path = _paths.map((e) => e.name).toList()
+                            ..add(name);
+
+                          final entity = await DioManager().doPost(
+                              api: NetworkConfig.apiCreateDir,
+                              data: {"paths": path},
+                              transformer: (Map<String, dynamic> json) =>
+                                  CreateDirEntity.fromJson(json),
+                              context: context);
+
+                          if (entity != null) {
+                            _refresh();
+                          }
+
+
+
+                        },
+                        style: ButtonStyle(
+                            shape: MaterialStateProperty.all(
+                                RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)))),
+                        icon: const Icon(Icons.create_new_folder),
+                        label: const Text("新建文件夹")),
+                    Expanded(
+                        child: Container(
+                      height: 0,
+                    )),
+                    IconButton(
+                        onPressed: () => _refresh(),
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: Colors.black45,
+                        ))
+                  ],
+                )),
             SizedBox(
-                height: 20,
-                child: ListView.separated(
-                    separatorBuilder: (BuildContext context, int index) =>
-                        const Text(" > "),
-                    shrinkWrap: true,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _paths.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Center(child: Text(_paths[index].name));
-                    })),
+                height: 30,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: ListView.separated(
+                      separatorBuilder: (BuildContext context, int index) =>
+                          Center(
+                            child: Text(
+                              "  >  ",
+                              style: TextStyle(
+                                  color: Theme.of(context).primaryColorLight),
+                            ),
+                          ),
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _paths.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Center(
+                            child: Text(_paths[index].name,
+                                style: TextStyle(
+                                  color: index == _paths.length - 1
+                                      ? Theme.of(context).unselectedWidgetColor
+                                      : Theme.of(context).primaryColorDark,
+                                )));
+                      }),
+                )),
             _getDivider(),
-            Expanded(
+            Flexible(
               child: children != null
                   ? ListView.separated(
                       shrinkWrap: true,
@@ -119,26 +239,32 @@ class _FilePageState extends State<FilePage> {
                       itemCount: children.length,
                       itemBuilder: (BuildContext context, int index) {
                         final file = children[index];
-
                         return GestureDetector(
-                          child: Row(
-                            children: [
-                              Icon(
-                                file.isDir
-                                    ? Icons.folder
-                                    : Icons.description_outlined,
-                                color: file.isDir
-                                    ? Colors.orangeAccent
-                                    : Colors.grey,
-                              ),
-                              Text(file.name)
-                            ],
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(15, 10, 10, 10),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  file.isDir
+                                      ? Icons.folder
+                                      : Icons.description_outlined,
+                                  color: file.isDir
+                                      ? Colors.orangeAccent
+                                      : Colors.grey,
+                                  size: 29,
+                                ),
+                                const Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 3)),
+                                Text(file.name,
+                                    style: const TextStyle(
+                                      fontSize: 13.5,
+                                    ))
+                              ],
+                            ),
                           ),
                           onSecondaryTapUp: (TapUpDetails details) async {
-                            if (file.isDir) {
-                              return;
-                            }
-
                             final mimeType = lookupMimeType(file.name);
 
                             print(
@@ -150,10 +276,13 @@ class _FilePageState extends State<FilePage> {
                             const idDownload = 1;
                             const idPlayVideo = 2;
 
-                            final data = {idDelete: "删除", idDownload: "下载"};
+                            final data = {idDelete: "删除"};
 
-                            if (mimeType?.startsWith("video") == true) {
-                              data.addAll({idPlayVideo: "使用potPlayer播放"});
+                            if (!file.isDir) {
+                              data.addAll({idDownload: "下载"});
+                              if (mimeType?.startsWith("video") == true) {
+                                data.addAll({idPlayVideo: "使用potPlayer播放"});
+                              }
                             }
 
                             final overlay = Overlay.of(context)
@@ -260,7 +389,7 @@ class _FilePageState extends State<FilePage> {
                         );
                       },
                     )
-                  : const Text("没有子文件"),
+                  : Container(),
             ),
           ],
         ),
@@ -278,11 +407,14 @@ class _FilePageState extends State<FilePage> {
 
   @override
   void initState() {
+    super.initState();
+    _fToast.init(context);
     DioManager()
         .doPost(
             api: NetworkConfig.apiListFile,
             transformer: (json) => ListFileEntity.fromJson(json),
             context: context)
+        .then((value) => value?.result)
         .then((value) {
       setState(() {
         if (value != null) {
@@ -294,13 +426,10 @@ class _FilePageState extends State<FilePage> {
 
     // 屏蔽浏览器默认的右键点击事件
     html.window.document.onContextMenu.listen((evt) => evt.preventDefault());
-
-    super.initState();
   }
 
   Widget _getDivider() => const Divider(
-        height: 20,
-        color: Colors.grey,
+        height: 5,
       );
 
   String _getFilePath({ListFileResult? currentFile}) {
@@ -322,10 +451,11 @@ class _FilePageState extends State<FilePage> {
   }
 
   Future<void> _refresh() async {
-    var result = await DioManager().doPost(
-        api: NetworkConfig.apiListFile,
-        transformer: (json) => ListFileEntity.fromJson(json),
-        context: context);
+    var result = (await DioManager().doPost(
+            api: NetworkConfig.apiListFile,
+            transformer: (json) => ListFileEntity.fromJson(json),
+            context: context))
+        ?.result;
 
     if (result == null) {
       return;
