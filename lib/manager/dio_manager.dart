@@ -3,9 +3,10 @@ import 'dart:convert';
 
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/model/entity/base_entity.dart';
+import 'package:cloud_driver/page/login_page.dart';
+import 'package:cloud_driver/util/util.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 typedef Transformer<T> = BaseEntity<T> Function(Map<String, dynamic> json);
@@ -63,30 +64,14 @@ class DioManager {
 
     final defaultHandler = (BaseEntity<T> baseEntity) {
       if (baseEntity.code != NetworkConfig.codeOk) {
-        final toast = FToast()..init(context);
-        toast.showToast(
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(25.0),
-              color: Theme.of(context).hoverColor,
-            ),
-            child: Text(
-              baseEntity.message,
-              style: TextStyle(color: Theme.of(context).hintColor),
-            ),
-          ),
-          gravity: ToastGravity.TOP,
-          toastDuration: const Duration(seconds: 2),
-        );
+        ToastUtil.showDefaultToast(context, baseEntity.message);
       }
 
       switch (baseEntity.code) {
         case NetworkConfig.codeOk:
           return baseEntity;
         case NetworkConfig.codeTokenTimeOut:
-          Navigator.of(context).popAndPushNamed("/login");
+          Navigator.of(context).pushNamed("/login", arguments: LoginArgs(true));
           break;
         case NetworkConfig.codeUnOrPwError:
           break;
@@ -104,10 +89,11 @@ class DioManager {
 
 class MyInterceptor extends Interceptor {
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    SharedPreferences.getInstance()
-        .then((value) => options.queryParameters
-            .addAll({"token": value.getString(SpConfig.keyToken)}))
-        .then((value) => super.onRequest(options, handler));
+  void onRequest(
+      RequestOptions options, RequestInterceptorHandler handler) async {
+    final sp = await SharedPreferences.getInstance();
+    final token = sp.getString(SpConfig.keyToken);
+    options.queryParameters.addAll({"token": token});
+    super.onRequest(options, handler);
   }
 }

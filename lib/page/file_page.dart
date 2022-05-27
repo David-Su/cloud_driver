@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:html' as html;
 
 import 'package:cloud_driver/config/config.dart';
@@ -43,7 +44,7 @@ class _FilePageState extends State<FilePage> {
                     ElevatedButton.icon(
                         onPressed: () {
                           final element = html.FileUploadInputElement();
-                          element.multiple = false;
+                          element.multiple = true;
                           element.draggable = false;
                           element.click();
 
@@ -52,7 +53,6 @@ class _FilePageState extends State<FilePage> {
                             if (files == null || files.isEmpty == true) {
                               return;
                             }
-                            final file = files[0];
 
                             final formData = html.FormData();
                             final token =
@@ -63,37 +63,16 @@ class _FilePageState extends State<FilePage> {
 
                             double progress = 0;
                             StateSetter? dialogState;
-                            late BuildContext dialog;
-
-                            request.open("POST",
-                                "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
-                            request.upload.onProgress.listen((event) {
-                              final loaded = event.loaded ?? 0;
-                              final total = event.total ?? 0;
-
-                              dialogState?.call(() {
-                                progress =
-                                    total == 0 ? progress : loaded / total;
-                              });
-                            });
-
-                            request.upload.onLoadEnd.listen((event) {
-                              print("上传完成");
-                              Navigator.of(dialog).pop();
-                              _refresh();
-                            });
-
-                            formData.appendBlob("file", file, file.name);
-                            request.send(formData);
+                            final dialogCompleter = Completer<BuildContext>();
 
                             showDialog(
                                 barrierDismissible: false,
                                 context: context,
                                 builder: (BuildContext dialogContext) {
-                                  dialog = dialogContext;
+                                  dialogCompleter.complete(dialogContext);
                                   return StatefulBuilder(builder:
                                       (BuildContext context,
-                                          StateSetter setState) {
+                                      StateSetter setState) {
                                     print("更新进度条");
                                     dialogState = setState;
                                     return Material(
@@ -101,8 +80,8 @@ class _FilePageState extends State<FilePage> {
                                         child: Container(
                                             child: Padding(
                                               padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      25, 15, 25, 15),
+                                              const EdgeInsets.fromLTRB(
+                                                  25, 15, 25, 15),
                                               child: Column(
                                                 children: [
                                                   CircularProgressIndicator(
@@ -110,8 +89,8 @@ class _FilePageState extends State<FilePage> {
                                                   ),
                                                   const Padding(
                                                       padding:
-                                                          EdgeInsets.symmetric(
-                                                              vertical: 5)),
+                                                      EdgeInsets.symmetric(
+                                                          vertical: 5)),
                                                   Text(
                                                       "${(progress * 100).toInt().toString()}%")
                                                 ],
@@ -121,12 +100,41 @@ class _FilePageState extends State<FilePage> {
                                             decoration: BoxDecoration(
                                                 color: Colors.white,
                                                 borderRadius:
-                                                    BorderRadius.circular(8))),
+                                                BorderRadius.circular(8))),
                                       ),
                                       color: Colors.transparent,
                                     );
                                   });
                                 });
+
+
+                            final dialog =await  dialogCompleter.future;
+
+                            request.open("POST",
+                                "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
+                            request.upload.onProgress.listen((event) {
+                              final loaded = event.loaded ?? 0;
+                              final total = event.total ?? 0;
+                              dialogState?.call(() {
+                                progress =
+                                    total == 0 ? progress : loaded / total;
+                              });
+                              //StatefulBuilder会重构并重构一个新的StateSetter，旧的StateSetter已经没用了
+                              dialogState = null;
+                            });
+
+                            request.upload.onLoadEnd.listen((event) {
+                              print("上传完成");
+                              Navigator.of(dialog).pop();
+                              _refresh();
+                            });
+
+                            for (final element in files) {
+                              formData.appendBlob("file", element, element.name);
+                            }
+                            request.send(formData);
+
+
                           });
                         },
                         style: ButtonStyle(
