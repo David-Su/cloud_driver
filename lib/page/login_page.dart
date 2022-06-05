@@ -20,6 +20,7 @@ class LoginPage extends StatelessWidget {
     final refreshToken = loginArgs?.refreshToken == true;
 
     final username = Global.username;
+    print("全局用户名->${username}");
     if (refreshToken && username != null && username.isNotEmpty == true) {
       unameController.text = username;
     }
@@ -109,6 +110,8 @@ class LoginPage extends StatelessWidget {
                           sp.setString(SpConfig.keyToken, result.token);
 
                           Global.username = unameController.text;
+
+                          print("保存username->${Global.username}");
 
                           if (refreshToken) {
                             Navigator.of(context).pop();

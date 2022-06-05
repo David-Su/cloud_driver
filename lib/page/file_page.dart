@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:html' as html;
 
 import 'package:cloud_driver/config/config.dart';
@@ -64,6 +65,7 @@ class _FilePageState extends State<FilePage> {
                             double progress = 0;
                             StateSetter? dialogState;
                             final dialogCompleter = Completer<BuildContext>();
+                            final dialog2Completer = Completer<BuildContext>();
 
                             showDialog(
                                 barrierDismissible: false,
@@ -72,16 +74,16 @@ class _FilePageState extends State<FilePage> {
                                   dialogCompleter.complete(dialogContext);
                                   return StatefulBuilder(builder:
                                       (BuildContext context,
-                                      StateSetter setState) {
-                                    print("更新进度条");
+                                          StateSetter setState) {
+                                    // print("更新进度条");
                                     dialogState = setState;
                                     return Material(
                                       child: Center(
                                         child: Container(
                                             child: Padding(
                                               padding:
-                                              const EdgeInsets.fromLTRB(
-                                                  25, 15, 25, 15),
+                                                  const EdgeInsets.fromLTRB(
+                                                      25, 15, 25, 15),
                                               child: Column(
                                                 children: [
                                                   CircularProgressIndicator(
@@ -89,8 +91,8 @@ class _FilePageState extends State<FilePage> {
                                                   ),
                                                   const Padding(
                                                       padding:
-                                                      EdgeInsets.symmetric(
-                                                          vertical: 5)),
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 5)),
                                                   Text(
                                                       "${(progress * 100).toInt().toString()}%")
                                                 ],
@@ -100,15 +102,14 @@ class _FilePageState extends State<FilePage> {
                                             decoration: BoxDecoration(
                                                 color: Colors.white,
                                                 borderRadius:
-                                                BorderRadius.circular(8))),
+                                                    BorderRadius.circular(8))),
                                       ),
                                       color: Colors.transparent,
                                     );
                                   });
                                 });
 
-
-                            final dialog =await  dialogCompleter.future;
+                            final dialog = await dialogCompleter.future;
 
                             request.open("POST",
                                 "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
@@ -123,18 +124,53 @@ class _FilePageState extends State<FilePage> {
                               dialogState = null;
                             });
 
-                            request.upload.onLoadEnd.listen((event) {
-                              print("上传完成");
-                              Navigator.of(dialog).pop();
+                            request.onLoadEnd.listen((event) async {
+                              print("request.onLoadEnd");
+                              Navigator.of(await dialog2Completer.future).pop();
                               _refresh();
                             });
 
+                            request.upload.onLoadEnd.listen((event) {
+                              print("上传完成");
+                              Navigator.of(dialog).pop();
+                              showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    dialog2Completer.complete(context);
+                                    return Material(
+                                      child: Center(
+                                        child: Container(
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      25, 15, 25, 15),
+                                              child: Column(
+                                                children: const [
+                                                  CircularProgressIndicator(),
+                                                  Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 5)),
+                                                  Text("正在等待服务器")
+                                                ],
+                                                mainAxisSize: MainAxisSize.min,
+                                              ),
+                                            ),
+                                            decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(8))),
+                                      ),
+                                      color: Colors.transparent,
+                                    );
+                                  });
+                            });
+
                             for (final element in files) {
-                              formData.appendBlob("file", element, element.name);
+                              formData.appendBlob(
+                                  "file", element, element.name);
                             }
                             request.send(formData);
-
-
                           });
                         },
                         style: ButtonStyle(
@@ -189,9 +225,6 @@ class _FilePageState extends State<FilePage> {
                           if (entity != null) {
                             _refresh();
                           }
-
-
-
                         },
                         style: ButtonStyle(
                             shape: MaterialStateProperty.all(
@@ -455,7 +488,10 @@ class _FilePageState extends State<FilePage> {
   Future<String> _getDownloadUrl(ListFileResult currentFile) async {
     final sp = await SharedPreferences.getInstance();
 
-    return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=${_getFilePath(currentFile: currentFile)}";
+    final filePaths = const Base64Encoder.urlSafe()
+        .convert(utf8.encode(_getFilePath(currentFile: currentFile)));
+
+    return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=$filePaths";
   }
 
   Future<void> _refresh() async {

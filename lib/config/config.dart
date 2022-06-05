@@ -1,7 +1,8 @@
 class NetworkConfig {
   NetworkConfig._internal();
 
-  static const String urlBase = "http://127.0.0.1:8080/CloudDriver";
+  // static const String urlBase = "http://127.0.0.1:8080/CloudDriver";
+  static const String urlBase = "http://192.168.0.100:8080/CloudDriver";
   // static const String urlBase = "http://8.218.97.215:8080/CloudDriver";
   static const String apiLogin = "/login";
   static const String apiListFile = "/listfile";
@@ -26,4 +27,5 @@ class NetworkConfig {
 
 class SpConfig {
   static const String keyToken = "key_token";
+  static const String keyUsername = "key_username";
 }
