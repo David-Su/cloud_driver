@@ -1,0 +1,14 @@
+[
+  {
+    "channel": "internet",
+    "baseHref": "cloud"
+  },
+  {
+    "channel": "internetProxy",
+    "baseHref": "cloud"
+  },
+  {
+    "channel": "intranet",
+    "baseHref": "cloud_intranet"
+  }
+]
