@@ -5,10 +5,10 @@
   },
   {
     "channel": "internetProxy",
-    "baseHref": "cloud"
+    "baseHref": "cloudProxy"
   },
   {
     "channel": "intranet",
-    "baseHref": "cloud_intranet"
+    "baseHref": "cloudIntranet"
   }
 ]

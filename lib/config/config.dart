@@ -34,9 +34,10 @@ class NetworkConfig {
   static String get _host {
     switch (ChannelConfig.channel) {
       case ChannelConfig.channelInternet:
-        return "8.218.97.215:8080";
+        //todo
+        return "";
       case ChannelConfig.channelInternetProxy:
-        return "8.218.97.215:80801";
+        return "8.218.97.215:8080";
       case ChannelConfig.channelIntranet:
         return "192.168.0.100:8080";
     }
