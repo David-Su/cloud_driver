@@ -472,7 +472,7 @@ class _FilePageState extends State<FilePage> {
                             Text("${(progress * 100).toInt().toString()}%",),
                             const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 5)),
-                            Text("${speed.toStringAsFixed(1)}mB/s"),
+                            Text("${speed.toStringAsFixed(1)}MB/S"),
                           ],
                           mainAxisSize: MainAxisSize.min,
                         ),
