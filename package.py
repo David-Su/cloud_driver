@@ -8,7 +8,8 @@ def main():
         for flavor in flavors:
             cmd = 'flutter build web ' \
                   '--dart-define=CHANNEL=%s ' \
-                  '--base-href=%s ' % (flavor["channel"], '/%s/' % (flavor["baseHref"]))
+                  '--base-href=%s ' \
+                  '--web-renderer html ' % (flavor["channel"], '/%s/' % (flavor["baseHref"]))
             print("执行-命令->" + cmd)
             os.system(cmd)
             print("执行-web目录改名-> %s" % (flavor["baseHref"]))

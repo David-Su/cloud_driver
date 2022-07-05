@@ -4,7 +4,6 @@ import 'dart:html' as html;
 
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/manager/dio_manager.dart';
-import 'package:cloud_driver/model/entity/base_entity.dart';
 import 'package:cloud_driver/model/entity/create_dir_entity.dart';
 import 'package:cloud_driver/model/entity/delete_file_entity.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
@@ -151,6 +150,10 @@ class _FilePageState extends State<FilePage> {
                       itemCount: children.length,
                       itemBuilder: (BuildContext context, int index) {
                         final file = children[index];
+                        final size = file.size;
+                        final displaySize = size != null
+                            ? _getDisplaySize(size.toDouble())
+                            : "";
                         return GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           child: Padding(
@@ -172,8 +175,11 @@ class _FilePageState extends State<FilePage> {
                                 Text(file.name,
                                     style: const TextStyle(
                                       fontSize: 13.5,
-                                    ))
+                                    )),
+                                const Spacer(),
+                                Text(displaySize),
                               ],
+                              mainAxisSize: MainAxisSize.max,
                             ),
                           ),
                           onSecondaryTapUp: (TapUpDetails details) async {
@@ -469,10 +475,12 @@ class _FilePageState extends State<FilePage> {
                             ),
                             const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 5)),
-                            Text("${(progress * 100).toInt().toString()}%",),
+                            Text(
+                              "${(progress * 100).toInt().toString()}%",
+                            ),
                             const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 5)),
-                            Text("${speed.toStringAsFixed(1)}MB/S"),
+                            Text("${_getDisplaySize(speed)}/S"),
                           ],
                           mainAxisSize: MainAxisSize.min,
                         ),
@@ -506,8 +514,8 @@ class _FilePageState extends State<FilePage> {
             final lastLoaded = _lastEvent.loaded ?? 0;
             final lastTimeStamp = _lastEvent.timeStamp ?? 0;
 
-            speed = ((loaded - lastLoaded) / (1024 * 1024)) /
-                ((timeStamp - lastTimeStamp)/1000);
+            speed =
+                (loaded - lastLoaded) / ((timeStamp - lastTimeStamp) / 1000);
           }
         });
         //StatefulBuilder会重构并重构一个新的StateSetter，旧的StateSetter已经没用了
@@ -555,5 +563,17 @@ class _FilePageState extends State<FilePage> {
       }
       request.send(formData);
     });
+  }
+
+  String _getDisplaySize(double byte) {
+    if (byte < 1024) {
+      return "$byte B";
+    } else if (byte < 1024 * 1024) {
+      return "${(byte / 1024).round()} KB";
+    } else if (byte < 1024 * 1024 * 1024) {
+      return "${(byte / (1024 * 1024)).toStringAsFixed(1)} MB";
+    } else {
+      return "${(byte / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
+    }
   }
 }

@@ -14,8 +14,9 @@ class ListFileResult{
     List<ListFileResult>? children;
     bool isDir;
     String name;
+    int? size;
 
-    ListFileResult(this.children, this.isDir, this.name);
+    ListFileResult(this.children, this.isDir, this.name,this.size);
 
     factory ListFileResult.fromJson(Map<String, dynamic> json) => _$ListFileResultFromJson(json);
 
