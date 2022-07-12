@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:html' as html;
+import 'dart:math';
 
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/manager/dio_manager.dart';
@@ -22,6 +23,8 @@ class _FilePageState extends State<FilePage> {
   final List<ListFileResult> _paths = [];
 
   final _fToast = FToast();
+
+  final _scrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -116,34 +119,39 @@ class _FilePageState extends State<FilePage> {
                 )),
             SizedBox(
                 height: 30,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: ListView.separated(
-                      separatorBuilder: (BuildContext context, int index) =>
-                          Center(
-                            child: Text(
-                              "  >  ",
-                              style: TextStyle(
-                                  color: Theme.of(context).primaryColorLight),
-                            ),
-                          ),
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _paths.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Center(
-                            child: Text(_paths[index].name,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: ListView.separated(
+                        separatorBuilder: (BuildContext context, int index) =>
+                            Center(
+                              child: Text(
+                                "  >  ",
                                 style: TextStyle(
-                                  color: index == _paths.length - 1
-                                      ? Theme.of(context).unselectedWidgetColor
-                                      : Theme.of(context).primaryColorDark,
-                                )));
-                      }),
+                                    color: Theme.of(context).primaryColorLight),
+                              ),
+                            ),
+                        shrinkWrap: true,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _paths.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Center(
+                              child: Text(_paths[index].name,
+                                  style: TextStyle(
+                                    color: index == _paths.length - 1
+                                        ? Theme.of(context)
+                                            .unselectedWidgetColor
+                                        : Theme.of(context).primaryColorDark,
+                                  )));
+                        }),
+                  ),
                 )),
             _getDivider(),
             Flexible(
               child: children != null
                   ? ListView.separated(
+                      controller: _scrollController,
                       shrinkWrap: true,
                       separatorBuilder: (BuildContext context, int index) =>
                           _getDivider(),
@@ -300,7 +308,7 @@ class _FilePageState extends State<FilePage> {
                           onTap: () {
                             if (file.isDir) {
                               setState(() {
-                                _paths.add(file);
+                                _refreshList(() => _paths.add(file));
                               });
                             }
                           },
@@ -314,9 +322,7 @@ class _FilePageState extends State<FilePage> {
       ),
       onWillPop: () async {
         if (_paths.length > 1) {
-          setState(() {
-            _paths.removeAt(_paths.length - 1);
-          });
+          _refreshList(() => _paths.removeAt(_paths.length - 1));
         }
         return false;
       },
@@ -344,6 +350,15 @@ class _FilePageState extends State<FilePage> {
 
     // 屏蔽浏览器默认的右键点击事件
     html.window.document.onContextMenu.listen((evt) => evt.preventDefault());
+
+    _scrollController.addListener(() {
+      final current = _getCurrentFile();
+      if (current == null) return;
+
+      debugPrint("_scrollController:${_scrollController.position}");
+
+      current.position = _scrollController.position.pixels;
+    });
   }
 
   Widget _getDivider() => const Divider(
@@ -389,8 +404,11 @@ class _FilePageState extends State<FilePage> {
       for (var element in files) {
         print("_refresh 第${deep}层->${_paths[deep].name}  对比 ${element.name}");
 
-        if (element.name == _paths[deep].name) {
-          _paths.replaceRange(deep, deep + 1, [element]);
+        final path = _paths[deep];
+
+        if (element.name == path.name) {
+          _paths.replaceRange(
+              deep, deep + 1, [element..position = path.position]);
 
           // print("_refresh 替换->${_paths[deep].name}");
 
@@ -420,13 +438,13 @@ class _FilePageState extends State<FilePage> {
       }
     }
 
-    _paths.forEach((element) {
-      final sb = new StringBuffer();
+    for (var element in _paths) {
+      final sb = StringBuffer();
       sb.writeAll((element.children?.map((e) => e.name)) ?? [], ",");
       print("_refresh path->${element.name} children->${sb.toString()}");
-    });
+    }
 
-    setState(() {});
+    _refreshList(() {});
   }
 
   Future<void> _uploadFile() async {
@@ -576,4 +594,36 @@ class _FilePageState extends State<FilePage> {
       return "${(byte / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
     }
   }
+
+  Future<void> _nextFrame() async {
+    final completer = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      completer.complete();
+    });
+    await completer.future;
+  }
+
+  //滚动到记录的位置
+  Future<void> _refreshList(VoidCallback callback) async {
+    setState(callback);
+
+    await _nextFrame();
+
+    final currentFile = _getCurrentFile();
+
+    if (currentFile == null) return;
+
+    final position = currentFile.position;
+
+    final jumpTo = position == null
+        ? 0.0
+        : min(_scrollController.position.maxScrollExtent, position);
+
+    currentFile.position = jumpTo;
+
+    _scrollController.jumpTo(jumpTo);
+  }
+
+  //当前的文件节点
+  ListFileResult? _getCurrentFile() => _paths.isNotEmpty ? _paths.last : null;
 }
