@@ -22,6 +22,8 @@ class ListFileResult {
   int? size;
   //当前列表滚动位置，非网络数据
   double? position;
+  //数据大小显示，非网络数据
+  String displaySize = "";
 
   ListFileResult(this.children, this.isDir, this.name, this.size);
 
