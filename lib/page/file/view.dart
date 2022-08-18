@@ -1,24 +1,20 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:math';
+import 'dart:ui';
 
-import 'package:cloud_driver/config/config.dart';
-import 'package:cloud_driver/manager/dio_manager.dart';
-import 'package:cloud_driver/model/entity/create_dir_entity.dart';
-import 'package:cloud_driver/model/entity/delete_file_entity.dart';
-import 'package:cloud_driver/model/entity/list_file_entity.dart';
-import 'package:cloud_driver/page/file_page/bloc.dart';
-import 'package:cloud_driver/page/file_page/event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mime/mime.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'file_page/state.dart';
+import 'bloc.dart';
+import 'event.dart';
+import 'state.dart';
 
 class FilePage extends StatefulWidget {
+  const FilePage({Key? key}) : super(key: key);
+
   @override
   State<StatefulWidget> createState() => _FilePageState();
 }
@@ -29,10 +25,6 @@ class _FilePageState extends State<FilePage> {
   final _scrollController = ScrollController();
 
   late final FilePageBloc _bloc;
-
-  BuildContext? _progressDialog;
-
-  Completer<BuildContext>? _waitServerDialog;
 
   @override
   void initState() {
@@ -72,21 +64,15 @@ class _FilePageState extends State<FilePage> {
                 previous.fileListPosition != current.fileListPosition,
           ),
           BlocListener<FilePageBloc, FilePageState>(
-            listener: (BuildContext context, FilePageState state) {
+            listener: (BuildContext _, FilePageState state) {
               debugPrint("showWaitServerDialog:${state.showWaitServerDialog}");
 
               if (state.showWaitServerDialog) {
-                if (_waitServerDialog != null) return;
-
-                final completer = Completer<BuildContext>();
-
-                _waitServerDialog = completer;
-
                 showDialog(
                     context: context,
-                    builder: (BuildContext context) {
-                      completer.complete(context);
-
+                    builder: (BuildContext dialogContext) {
+                      _bloc.add(ShowWaitServerDialogSuccessEvent());
+                      debugPrint("弹出${dialogContext.hashCode}");
                       return BlocProvider.value(
                         value: _bloc,
                         child: Material(
@@ -115,15 +101,7 @@ class _FilePageState extends State<FilePage> {
                       );
                     });
               } else {
-                _waitServerDialog?.future
-                    .then((value) => Navigator.of(value).pop())
-                    .then((value) => _waitServerDialog = null);
-
-                // debugPrint("_waitServerDialog:${_waitServerDialog}");
-                // final waitServerDialog = _waitServerDialog;
-                // _waitServerDialog = null;
-                // if (waitServerDialog != null)
-                //   Navigator.of(waitServerDialog).pop();
+                Navigator.of(context).pop();
               }
             },
             listenWhen: (FilePageState previous, FilePageState current) =>
@@ -134,17 +112,12 @@ class _FilePageState extends State<FilePage> {
               debugPrint(
                   "showUploadProgressDialog->${state.showUploadProgressDialog}");
 
-              if (true) return;
-
               if (state.showUploadProgressDialog) {
-                if (_progressDialog != null) return;
-
                 showDialog(
                     barrierDismissible: false,
                     context: context,
                     builder: (BuildContext dialogContext) {
-                      _progressDialog = dialogContext;
-
+                      _bloc.add(ShowProgressDialogSuccessEvent());
                       return BlocProvider.value(
                         value: _bloc,
                         child: Material(
@@ -208,17 +181,7 @@ class _FilePageState extends State<FilePage> {
                       );
                     });
               } else {
-                // _progressDialog?.future.then((value) {
-                //   debugPrint("pop progress dialog->${value}");
-                //   Navigator.of(value).pop();
-                //   _progressDialog = null;
-                // });
-
-                final progressDialog = _progressDialog;
-
-                _progressDialog = null;
-
-                if (progressDialog != null) Navigator.of(progressDialog).pop();
+                Navigator.of(context).pop();
               }
             },
             listenWhen: (FilePageState previous, FilePageState current) =>
@@ -335,7 +298,6 @@ class _FilePageState extends State<FilePage> {
   Widget buildChildrenList() => BlocBuilder<FilePageBloc, FilePageState>(
         builder: (BuildContext context, FilePageState state) {
           final children = state.children;
-
           return ListView.separated(
             controller: _scrollController,
             shrinkWrap: true,

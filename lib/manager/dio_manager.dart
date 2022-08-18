@@ -39,7 +39,7 @@ class DioManager {
       Handler<T>? interceptor}) async {
     final dialogCompleter = Completer<BuildContext>();
 
-    Future(() => showDialog(
+    showDialog(
         context: context,
         builder: (BuildContext dialogContext) {
           dialogCompleter.complete(dialogContext);
@@ -53,12 +53,14 @@ class DioManager {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8))),
           );
-        }));
+        });
 
     final value =
         await defaultDio.post(api, data: data, onSendProgress: onSendProgress);
 
-    Navigator.of((await dialogCompleter.future)).pop();
+    final dialogContext = await dialogCompleter.future;
+
+    Navigator.of(dialogContext).pop();
 
     BaseEntity<T> baseEntity = transformer.call(json.decode(value.toString()));
 
@@ -84,6 +86,14 @@ class DioManager {
     }
 
     return defaultHandler.call(baseEntity);
+  }
+
+  Future<void> nextFrame() async {
+    final completer = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      completer.complete();
+    });
+    await completer.future;
   }
 }
 

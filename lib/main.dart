@@ -1,11 +1,7 @@
-import 'dart:math';
-
 import 'package:cloud_driver/config/config.dart';
-import 'package:cloud_driver/page/file_page.dart';
+import 'package:cloud_driver/page/file/view.dart';
 import 'package:cloud_driver/page/login_page.dart';
 import 'package:flutter/material.dart';
-
-
 
 void main() {
   print("main() 当前渠道->${ChannelConfig.channel}");
@@ -36,7 +32,7 @@ class MyApp extends StatelessWidget {
       routes: {
         "/home": (BuildContext context) => const MyHomePage(title: ""),
         "/login": (BuildContext context) => LoginPage(),
-        "/file": (BuildContext context) => FilePage()
+        "/file": (BuildContext context) => const FilePage()
       },
       home: LoginPage(),
     );
