@@ -32,6 +32,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     on<PlayVideoEvent>(_playVideo);
     on<ShowProgressDialogSuccessEvent>(_showProgressDialogSuccess);
     on<ShowWaitServerDialogSuccessEvent>(_showWaitServerDialogSuccess);
+    on<SwitchViewEvent>(_switchView);
   }
 
   Future<void> _init(InitEvent event, Emitter<FilePageState> emit) async {
@@ -136,6 +137,48 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
 
     if (_currentPaths.isEmpty) _currentPaths.add(listFile);
+
+    void sort(ListFileResult path) {
+      final children = path.children;
+      children?.sort((ListFileResult a, ListFileResult b) {
+        if (a.isDir == b.isDir) {
+          return (b.size ?? 0).compareTo(a.size ?? 0);
+        }
+        if (a.isDir) {
+          return -1;
+        } else {
+          return 1;
+        }
+      });
+      children?.forEach((child) {
+        sort(child);
+      });
+    }
+
+    //排序-文件夹排前面-size大的排前面
+    for (final path in _currentPaths) {
+      sort(path);
+    }
+
+    final sp = await SharedPreferences.getInstance();
+
+    void assemblePreviewImgUrl(ListFileResult path) {
+      final previewImg = path.previewImg;
+      if (previewImg != null) {
+        path.previewImgUrl =
+            "${NetworkConfig.urlBase}${path.previewImg}&token=${sp.getString(SpConfig.keyToken)}";
+        debugPrint("previewImgUrl -> ${path.previewImgUrl}");
+      }
+
+      path.children?.forEach((element) {
+        assemblePreviewImgUrl(element);
+      });
+    }
+
+    //previewImg生成的完整url
+    for (final path in _currentPaths) {
+      assemblePreviewImgUrl(path);
+    }
 
     _refreshList(_currentPaths, emit);
   }
@@ -339,4 +382,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   void _showWaitServerDialogSuccess(ShowWaitServerDialogSuccessEvent event,
           Emitter<FilePageState> emit) =>
       waitServerDialogCompleter?.complete();
+
+  void _switchView(SwitchViewEvent event, Emitter<FilePageState> emit) {
+    emit(state.clone()..isGridView = !state.isGridView);
+  }
 }

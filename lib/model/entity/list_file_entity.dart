@@ -1,6 +1,6 @@
 import 'package:cloud_driver/model/entity/base_entity.dart';
-import 'package:flutter/widgets.dart';
 import 'package:json_annotation/json_annotation.dart';
+
 part 'list_file_entity.g.dart';
 
 @JsonSerializable()
@@ -20,12 +20,19 @@ class ListFileResult {
   bool isDir;
   String name;
   int? size;
+  String? previewImg;
+
   //当前列表滚动位置，非网络数据
   double? position;
+
   //数据大小显示，非网络数据
   String displaySize = "";
 
-  ListFileResult(this.children, this.isDir, this.name, this.size);
+  //previewImg生成的完整url
+  String? previewImgUrl;
+
+  ListFileResult(
+      this.children, this.isDir, this.name, this.size, this.previewImg);
 
   factory ListFileResult.fromJson(Map<String, dynamic> json) =>
       _$ListFileResultFromJson(json);

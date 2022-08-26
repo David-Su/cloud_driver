@@ -9,10 +9,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-typedef Transformer<T> = BaseEntity<T> Function(Map<String, dynamic> json);
-typedef DefaultHandler<T> = BaseEntity<T>? Function(BaseEntity<T> baseEntity);
+typedef DefaultHandle<T> = BaseEntity<T>? Function(BaseEntity<T> baseEntity);
 typedef Handler<T> = BaseEntity<T>? Function(
-    BaseEntity<T> baseEntity, DefaultHandler<T> defaultHandler);
+    BaseEntity<T> baseEntity, DefaultHandle<T> defaultHandler);
 
 class DioManager {
   static final DioManager _instance = DioManager._internal();
@@ -33,7 +32,7 @@ class DioManager {
   Future<BaseEntity<T>?> doPost<T>(
       {required String api,
       data,
-      required Transformer<T> transformer,
+      required BaseEntity<T> Function(Map<String, dynamic> json) transformer,
       required BuildContext context,
       ProgressCallback? onSendProgress,
       Handler<T>? interceptor}) async {
@@ -64,7 +63,7 @@ class DioManager {
 
     BaseEntity<T> baseEntity = transformer.call(json.decode(value.toString()));
 
-    final defaultHandler = (BaseEntity<T> baseEntity) {
+    BaseEntity<T>? defaultHandle(BaseEntity<T> baseEntity) {
       if (baseEntity.code != NetworkConfig.codeOk) {
         ToastUtil.showDefaultToast(context, baseEntity.message);
       }
@@ -79,13 +78,13 @@ class DioManager {
           break;
       }
       return null;
-    };
-
-    if (interceptor != null) {
-      return interceptor.call(baseEntity, defaultHandler);
     }
 
-    return defaultHandler.call(baseEntity);
+    if (interceptor != null) {
+      return interceptor.call(baseEntity, defaultHandle);
+    }
+
+    return defaultHandle(baseEntity);
   }
 
   Future<void> nextFrame() async {

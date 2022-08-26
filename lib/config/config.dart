@@ -41,7 +41,8 @@ class NetworkConfig {
       case ChannelConfig.channelIntranet:
         return "192.168.1.7:8080";
     }
-    return "172.17.22.65:8080";
+    // return "172.17.22.65:8080";
+    return "127.0.0.1:8080";
   }
 }
 

@@ -3,9 +3,10 @@ import 'dart:html' as html;
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mime/mime.dart';
 
 import 'bloc.dart';
@@ -20,8 +21,6 @@ class FilePage extends StatefulWidget {
 }
 
 class _FilePageState extends State<FilePage> {
-  final _fToast = FToast();
-
   final _scrollController = ScrollController();
 
   late final FilePageBloc _bloc;
@@ -29,7 +28,6 @@ class _FilePageState extends State<FilePage> {
   @override
   void initState() {
     super.initState();
-    _fToast.init(context);
 
     _bloc = FilePageBloc(context);
 
@@ -262,6 +260,21 @@ class _FilePageState extends State<FilePage> {
                             child: Container(
                           height: 0,
                         )),
+                        BlocBuilder<FilePageBloc, FilePageState>(
+                          buildWhen:
+                              (FilePageState previous, FilePageState current) =>
+                                  previous.isGridView != current.isGridView,
+                          builder: (BuildContext context,
+                                  FilePageState state) =>
+                              IconButton(
+                                  onPressed: () => _bloc.add(SwitchViewEvent()),
+                                  icon: Icon(
+                                    state.isGridView
+                                        ? Icons.list
+                                        : Icons.grid_view,
+                                    color: Colors.black45,
+                                  )),
+                        ),
                         IconButton(
                             onPressed: () => _bloc.add(RefreshDataEvent()),
                             icon: const Icon(
@@ -298,126 +311,202 @@ class _FilePageState extends State<FilePage> {
   Widget buildChildrenList() => BlocBuilder<FilePageBloc, FilePageState>(
         builder: (BuildContext context, FilePageState state) {
           final children = state.children;
-          return ListView.separated(
-            controller: _scrollController,
-            shrinkWrap: true,
-            separatorBuilder: (BuildContext context, int index) =>
-                _getDivider(),
-            itemCount: children.length,
-            itemBuilder: (BuildContext context, int index) {
-              final file = children[index];
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(15, 10, 10, 10),
-                  child: Row(
-                    children: [
-                      Icon(
-                        file.isDir ? Icons.folder : Icons.description_outlined,
-                        color: file.isDir ? Colors.orangeAccent : Colors.grey,
-                        size: 29,
-                      ),
-                      const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 3)),
-                      Text(file.name,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                          )),
-                      const Spacer(),
-                      Text(file.displaySize),
-                    ],
-                    mainAxisSize: MainAxisSize.max,
-                  ),
-                ),
-                onSecondaryTapUp: (TapUpDetails details) async {
-                  final mimeType = lookupMimeType(file.name);
 
-                  print(
-                      "onSecondaryTapUp: lookupMimeType->${lookupMimeType(file.name)}");
+          return BlocBuilder<FilePageBloc, FilePageState>(
+            buildWhen: (FilePageState previous, FilePageState current) =>
+                previous.isGridView != current.isGridView,
+            builder: (BuildContext context, FilePageState state) => state
+                    .isGridView
+                ? LayoutBuilder(builder:
+                    (BuildContext context, BoxConstraints constraints) {
+                    debugPrint(
+                        "constraints.maxWidth => ${constraints.maxWidth}  屏幕 => ${html.window.screen?.width}");
 
-                  // lookupMimeType(file.name);
+                    //假设窗口最大时横向为15个item
+                    final oneItemWidth = (html.window.screen?.width ?? 0) / 15;
 
-                  const idDelete = 0;
-                  const idDownload = 1;
-                  const idPlayVideo = 2;
+                    debugPrint("oneItemWidth -> ${oneItemWidth}");
 
-                  final data = {idDelete: "删除"};
+                    final crossAxisCount =
+                        max(constraints.maxWidth ~/ oneItemWidth, 1);
 
-                  if (!file.isDir) {
-                    data.addAll({idDownload: "下载"});
-                    if (mimeType?.startsWith("video") == true) {
-                      data.addAll({idPlayVideo: "使用potPlayer播放"});
-                    }
-                  }
-
-                  final overlay = Overlay.of(context)
-                      ?.context
-                      .findRenderObject() as RenderBox;
-                  int? id = await showMenu<int>(
-                      context: context,
-                      items: data.entries
-                          .map((e) => PopupMenuItem(
-                                child: Text(e.value),
-                                value: e.key,
-                              ))
-                          .toList(),
-                      position: RelativeRect.fromRect(
-                          Rect.fromLTRB(
-                              details.globalPosition.dx,
-                              details.globalPosition.dy,
-                              details.globalPosition.dx,
-                              details.globalPosition.dy),
-                          Offset.zero & overlay.size));
-
-                  switch (id) {
-                    case idDelete:
-                      final delete = await showDialog(
-                          context: context,
-                          builder: (BuildContext context) => AlertDialog(
-                                title: const Text("警告"),
-                                content: Text("确认删除${file.name}吗"),
-                                actions: [
-                                  TextButton(
-                                    child: const Text("取消"),
-                                    onPressed: () => Navigator.of(context)
-                                        .pop(false), //关闭对话框
+                    return GridView.builder(
+                        controller: _scrollController,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            childAspectRatio: 1 / 1.5,
+                            crossAxisCount: crossAxisCount),
+                        itemCount: children.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final file = children[index];
+                          final previewImg = file.previewImg;
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onSecondaryTapUp: (TapUpDetails details) async =>
+                                await onSecondaryTapUp(
+                                    file, context, details, index),
+                            onTap: () => onTap(file, index),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: Column(
+                                children: [
+                                  FractionallySizedBox(
+                                    widthFactor: 1,
+                                    child: AspectRatio(
+                                        aspectRatio: 1 / 1,
+                                        child: previewImg != null
+                                            ? Image.network(
+                                                "${file.previewImgUrl}",
+                                                fit: BoxFit.contain,
+                                              )
+                                            : Icon(
+                                                file.isDir
+                                                    ? Icons.folder
+                                                    : Icons
+                                                        .description_outlined,
+                                                color: file.isDir
+                                                    ? Colors.orangeAccent
+                                                    : Colors.grey,
+                                              )),
                                   ),
-                                  TextButton(
-                                    child: const Text("删除"),
-                                    onPressed: () {
-                                      // ... 执行删除操作
-                                      Navigator.of(context).pop(true); //关闭对话框
-                                    },
+                                  const SizedBox(
+                                    height: 10,
                                   ),
+                                  Expanded(
+                                      child: AutoSizeText(
+                                    file.name,
+                                  )),
                                 ],
-                              ));
-
-                      if (delete) {
-                        _bloc.add(DeleteFileEvent(file.name));
-                      }
-                      break;
-                    case idDownload:
-                      _bloc.add(DownloadFileEvent(index));
-                      break;
-                    case idPlayVideo:
-                      _bloc.add(
-                          PlayVideoEvent(PlayVideoEvent.typePotPlayer, index));
-                      break;
-                  }
-                },
-                onTap: () {
-                  if (file.isDir) {
-                    _bloc.add(ForwardEvent(index));
-                  }
-                },
-              );
-            },
+                              ),
+                            ),
+                          );
+                        });
+                  })
+                : ListView.separated(
+                    controller: _scrollController,
+                    shrinkWrap: true,
+                    separatorBuilder: (BuildContext context, int index) =>
+                        _getDivider(),
+                    itemCount: children.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final file = children[index];
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(15, 10, 10, 10),
+                          child: Row(
+                            children: [
+                              Icon(
+                                file.isDir
+                                    ? Icons.folder
+                                    : Icons.description_outlined,
+                                color: file.isDir
+                                    ? Colors.orangeAccent
+                                    : Colors.grey,
+                                size: 29,
+                              ),
+                              const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 3)),
+                              Text(file.name,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                  )),
+                              const Spacer(),
+                              Text(file.displaySize),
+                            ],
+                            mainAxisSize: MainAxisSize.max,
+                          ),
+                        ),
+                        onSecondaryTapUp: (TapUpDetails details) async =>
+                            await onSecondaryTapUp(
+                                file, context, details, index),
+                        onTap: () => onTap(file, index),
+                      );
+                    },
+                  ),
           );
         },
         buildWhen: (FilePageState previous, FilePageState current) =>
             previous.children != current.children ||
             previous.children.length != current.children.length,
       );
+
+  void onTap(ListFileResult file, int index) {
+    if (file.isDir) {
+      _bloc.add(ForwardEvent(index));
+    }
+  }
+
+  Future<void> onSecondaryTapUp(ListFileResult file, BuildContext context,
+      TapUpDetails details, int index) async {
+    final mimeType = lookupMimeType(file.name);
+
+    print("onSecondaryTapUp: lookupMimeType->${lookupMimeType(file.name)}");
+
+    // lookupMimeType(file.name);
+
+    const idDelete = 0;
+    const idDownload = 1;
+    const idPlayVideo = 2;
+
+    final data = {idDelete: "删除"};
+
+    if (!file.isDir) {
+      data.addAll({idDownload: "下载"});
+      if (mimeType?.startsWith("video") == true) {
+        data.addAll({idPlayVideo: "使用potPlayer播放"});
+      }
+    }
+
+    final overlay =
+        Overlay.of(context)?.context.findRenderObject() as RenderBox;
+    int? id = await showMenu<int>(
+        context: context,
+        items: data.entries
+            .map((e) => PopupMenuItem(
+                  child: Text(e.value),
+                  value: e.key,
+                ))
+            .toList(),
+        position: RelativeRect.fromRect(
+            Rect.fromLTRB(details.globalPosition.dx, details.globalPosition.dy,
+                details.globalPosition.dx, details.globalPosition.dy),
+            Offset.zero & overlay.size));
+
+    switch (id) {
+      case idDelete:
+        final delete = await showDialog(
+            context: context,
+            builder: (BuildContext context) => AlertDialog(
+                  title: const Text("警告"),
+                  content: Text("确认删除${file.name}吗"),
+                  actions: [
+                    TextButton(
+                      child: const Text("取消"),
+                      onPressed: () => Navigator.of(context).pop(false), //关闭对话框
+                    ),
+                    TextButton(
+                      child: const Text("删除"),
+                      onPressed: () {
+                        // ... 执行删除操作
+                        Navigator.of(context).pop(true); //关闭对话框
+                      },
+                    ),
+                  ],
+                ));
+
+        if (delete) {
+          _bloc.add(DeleteFileEvent(file.name));
+        }
+        break;
+      case idDownload:
+        _bloc.add(DownloadFileEvent(index));
+        break;
+      case idPlayVideo:
+        _bloc.add(PlayVideoEvent(PlayVideoEvent.typePotPlayer, index));
+        break;
+    }
+  }
 
   Widget buildPathList() => BlocBuilder<FilePageBloc, FilePageState>(
         builder: (BuildContext context, FilePageState state) {

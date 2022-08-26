@@ -23,6 +23,9 @@ class FilePageState {
   String displaySpeed = "";
   double speed = 0.0;
 
+  //是否为表格视图
+  bool isGridView = true;
+
   FilePageState clone() {
     return FilePageState()
       ..paths = paths
@@ -31,6 +34,7 @@ class FilePageState {
       ..showUploadProgressDialog = showUploadProgressDialog
       ..uploadProgress = uploadProgress
       ..displaySpeed = displaySpeed
-      ..speed = speed;
+      ..speed = speed
+      ..isGridView = isGridView;
   }
 }

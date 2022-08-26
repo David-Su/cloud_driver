@@ -63,3 +63,6 @@ class ShowProgressDialogSuccessEvent extends FilePageEvent {}
 
 //弹出等待服务器对话框完成
 class ShowWaitServerDialogSuccessEvent extends FilePageEvent {}
+
+//切换表格或列表视图
+class SwitchViewEvent extends FilePageEvent {}

@@ -30,6 +30,7 @@ ListFileResult _$ListFileResultFromJson(Map<String, dynamic> json) =>
       json['isDir'] as bool,
       json['name'] as String,
       json['size'] as int?,
+      json['previewImg'] as String?,
     );
 
 Map<String, dynamic> _$ListFileResultToJson(ListFileResult instance) =>
@@ -38,4 +39,5 @@ Map<String, dynamic> _$ListFileResultToJson(ListFileResult instance) =>
       'isDir': instance.isDir,
       'name': instance.name,
       'size': instance.size,
+      'previewImg': instance.previewImg,
     };

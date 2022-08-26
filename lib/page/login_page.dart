@@ -46,7 +46,6 @@ class LoginPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                    readOnly: refreshToken,
                     controller: unameController,
                     decoration: const InputDecoration(
                         labelText: "用户名", prefixIcon: Icon(Icons.person))),
@@ -59,7 +58,7 @@ class LoginPage extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         var futureSp =
-                        Future(() => SharedPreferences.getInstance());
+                            Future(() => SharedPreferences.getInstance());
 
                         var futureLogin = DioManager().doPost(
                             api: NetworkConfig.apiLogin,
@@ -70,7 +69,7 @@ class LoginPage extends StatelessWidget {
                             transformer: (json) => LoginEntity.fromJson(json),
                             context: context,
                             interceptor: (BaseEntity<LoginResult> baseEntity,
-                                DefaultHandler<LoginResult> defaultHandler) {
+                                DefaultHandle<LoginResult> defaultHandler) {
                               switch (baseEntity.code) {
                                 case NetworkConfig.codeOk:
                                   return baseEntity;
@@ -88,17 +87,15 @@ class LoginPage extends StatelessWidget {
 
                           if (result == null) return;
 
-                          SharedPreferences sp =
-                          value[0] as SharedPreferences;
+                          SharedPreferences sp = value[0] as SharedPreferences;
 
                           sp.setString(SpConfig.keyToken, result.token);
 
-                          print(
-                              "本地token->${sp.getString(SpConfig.keyToken)}");
+                          print("本地token->${sp.getString(SpConfig.keyToken)}");
                         });
 
                         final values =
-                        await Future.wait([futureSp, futureLogin]);
+                            await Future.wait([futureSp, futureLogin]);
 
                         SharedPreferences sp = values[0] as SharedPreferences;
 
