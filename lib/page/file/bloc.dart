@@ -5,6 +5,7 @@ import 'dart:html' as html;
 import 'package:bloc/bloc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../config/config.dart';
 import '../../manager/dio_manager.dart';
@@ -16,6 +17,7 @@ import 'state.dart';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   final BuildContext _context;
+  WebSocketChannel? webSocketChannel;
   Completer<void>? progressDialogCompleter;
   Completer<void>? waitServerDialogCompleter;
 
@@ -33,6 +35,28 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     on<ShowProgressDialogSuccessEvent>(_showProgressDialogSuccess);
     on<ShowWaitServerDialogSuccessEvent>(_showWaitServerDialogSuccess);
     on<SwitchViewEvent>(_switchView);
+
+    SharedPreferences.getInstance().then((sp) {
+      final token = sp.getString(SpConfig.keyToken);
+
+      final channel = WebSocketChannel.connect(Uri.parse(
+          "${NetworkConfig.wsUrlBase}${NetworkConfig
+              .apiWsUploadTasks}?token=$token"));
+
+      channel.stream.listen((event) {
+        debugPrint("WebSocket:${event}");
+      });
+
+      channel.sink.add("hello from flutter");
+
+      webSocketChannel = channel;
+    });
+  }
+
+  @override
+  Future<void> close() async {
+    super.close();
+    webSocketChannel?.sink.close();
   }
 
   Future<void> _init(InitEvent event, Emitter<FilePageState> emit) async {
@@ -47,8 +71,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
   }
 
-  FutureOr<void> _createDir(
-      CreateDirEvent event, Emitter<FilePageState> emit) async {
+  FutureOr<void> _createDir(CreateDirEvent event,
+      Emitter<FilePageState> emit) async {
     final name = event.name;
 
     final paths = _getWholePathList(fileName: name);
@@ -65,8 +89,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     await _refresh(emit);
   }
 
-  FutureOr<void> _deleteFile(
-      DeleteFileEvent event, Emitter<FilePageState> emit) async {
+  FutureOr<void> _deleteFile(DeleteFileEvent event,
+      Emitter<FilePageState> emit) async {
     final name = event.name;
 
     final paths = _getWholePathList(fileName: name);
@@ -85,9 +109,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   Future<void> _refresh(Emitter<FilePageState> emit) async {
     final listFile = await DioManager()
         .doPost(
-            api: NetworkConfig.apiListFile,
-            transformer: (json) => ListFileEntity.fromJson(json),
-            context: _context)
+        api: NetworkConfig.apiListFile,
+        transformer: (json) => ListFileEntity.fromJson(json),
+        context: _context)
         .then((value) => value?.result);
 
     if (listFile == null) return;
@@ -100,7 +124,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       var replace = false;
       for (var element in files) {
         print(
-            "_refresh 第${deep}层->${_currentPaths[deep].name}  对比 ${element.name}");
+            "_refresh 第${deep}层->${_currentPaths[deep].name}  对比 ${element
+                .name}");
 
         final path = _currentPaths[deep];
 
@@ -166,7 +191,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       final previewImg = path.previewImg;
       if (previewImg != null) {
         path.previewImgUrl =
-            "${NetworkConfig.urlBase}${path.previewImg}&token=${sp.getString(SpConfig.keyToken)}";
+        "${NetworkConfig.urlBase}${path.previewImg}&token=${sp.getString(
+            SpConfig.keyToken)}";
         debugPrint("previewImgUrl -> ${path.previewImgUrl}");
       }
 
@@ -185,7 +211,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   void _fileListScroll(FileListScrollEvent event, Emitter<FilePageState> emit) {
     debugPrint(
-        "_fileListScroll _currentFile->${_currentFile?.name} position->${event.position}");
+        "_fileListScroll _currentFile->${_currentFile?.name} position->${event
+            .position}");
     _currentFile?.position = event.position;
     state.fileListPosition = event.position;
   }
@@ -195,8 +222,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     return paths.isNotEmpty ? paths.last : null;
   }
 
-  Future<void> _refreshData(
-      RefreshDataEvent event, Emitter<FilePageState> emit) async {
+  Future<void> _refreshData(RefreshDataEvent event,
+      Emitter<FilePageState> emit) async {
     await _refresh(emit);
   }
 
@@ -221,17 +248,18 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     debugPrint("_currentFile->${_currentFile?.name}");
 
-    emit(state.clone()..fileListPosition = _currentFile?.position ?? 0);
+    emit(state.clone()
+      ..fileListPosition = _currentFile?.position ?? 0);
   }
 
-  FutureOr<void> _downloadFile(
-      DownloadFileEvent event, Emitter<FilePageState> emit) async {
+  FutureOr<void> _downloadFile(DownloadFileEvent event,
+      Emitter<FilePageState> emit) async {
     html.window
         .open(await _getDownloadUrl(state.children[event.index].name), "_self");
   }
 
-  Future<void> _uploadFile(
-      UploadFileEvent event, Emitter<FilePageState> emit) async {
+  Future<void> _uploadFile(UploadFileEvent event,
+      Emitter<FilePageState> emit) async {
     //上传完成通知器
     final completer = Completer<void>();
 
@@ -251,7 +279,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
       final formData = html.FormData();
       final token =
-          (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
+      (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
       final filePath = _getWholePathStr();
       final request = html.HttpRequest();
 
@@ -265,7 +293,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         ..uploadProgress = 0);
 
       request.open("POST",
-          "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
+          "${NetworkConfig.urlBase}${NetworkConfig
+              .apiUploadFile}?token=$token&path=$filePath");
 
       request.upload.onProgress.listen((event) {
         final loaded = event.loaded ?? 0;
@@ -295,7 +324,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
         await waitServerDialogCompleter?.future;
 
-        emit.call(state.clone()..showWaitServerDialog = false);
+        emit.call(state.clone()
+          ..showWaitServerDialog = false);
 
         completer.complete();
       });
@@ -305,9 +335,11 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
         await progressDialogCompleter?.future;
 
-        emit.call(state.clone()..showUploadProgressDialog = false);
+        emit.call(state.clone()
+          ..showUploadProgressDialog = false);
 
-        emit.call(state.clone()..showWaitServerDialog = true);
+        emit.call(state.clone()
+          ..showWaitServerDialog = true);
       });
 
       for (final element in files) {
@@ -330,7 +362,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final filePaths = const Base64Encoder.urlSafe()
         .convert(utf8.encode(_getWholePathStr(fileName: fileName)));
 
-    return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=$filePaths";
+    return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp
+        .getString(SpConfig.keyToken)}&filePaths=$filePaths";
   }
 
   //获取完整路径数组
@@ -349,8 +382,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     return sb.toString();
   }
 
-  Future<void> _playVideo(
-      PlayVideoEvent event, Emitter<FilePageState> emit) async {
+  Future<void> _playVideo(PlayVideoEvent event,
+      Emitter<FilePageState> emit) async {
     final videoUrl = await _getDownloadUrl(state.children[event.index].name);
     // js.context.callMethod(
     //     'openVideoUrlWithSysProgram', [videoUrl]);
@@ -375,15 +408,16 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
   }
 
-  void _showProgressDialogSuccess(
-          ShowProgressDialogSuccessEvent event, Emitter<FilePageState> emit) =>
+  void _showProgressDialogSuccess(ShowProgressDialogSuccessEvent event,
+      Emitter<FilePageState> emit) =>
       progressDialogCompleter?.complete();
 
   void _showWaitServerDialogSuccess(ShowWaitServerDialogSuccessEvent event,
-          Emitter<FilePageState> emit) =>
+      Emitter<FilePageState> emit) =>
       waitServerDialogCompleter?.complete();
 
   void _switchView(SwitchViewEvent event, Emitter<FilePageState> emit) {
-    emit(state.clone()..isGridView = !state.isGridView);
+    emit(state.clone()
+      ..isGridView = !state.isGridView);
   }
 }
