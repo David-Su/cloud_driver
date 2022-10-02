@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';

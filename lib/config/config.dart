@@ -11,12 +11,14 @@ class NetworkConfig {
   NetworkConfig._internal();
 
   static final String urlBase = "http://$_host/CloudDriver";
+  static final String wsUrlBase = "ws://$_host/CloudDriver";
   static const String apiLogin = "/login";
   static const String apiListFile = "/listfile";
   static const String apiCreateDir = "/createdir";
   static const String apiDeleteFile = "/deletefile";
   static const String apiDownloadFile = "/downloadfile";
   static const String apiUploadFile = "/uploadfile";
+  static const String apiWsUploadTasks = "/websocket/uploadtasks";
   static const int timeoutConnect = 2000;
   static const int timeoutReceive = 5000;
 
@@ -41,8 +43,9 @@ class NetworkConfig {
       case ChannelConfig.channelIntranet:
         return "192.168.1.2:8080";
     }
-    // return "172.17.22.65:8080";
-    return "127.0.0.1:8080";
+    // return "172.17.22.65:8080"; //mac
+    return "127.0.0.1:8080"; //本机
+    // return "8.218.97.215:8080"; //阿里云
   }
 }
 
