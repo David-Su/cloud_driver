@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_driver/config/config.dart';
+import 'package:cloud_driver/main.dart';
 import 'package:cloud_driver/model/entity/base_entity.dart';
 import 'package:cloud_driver/page/login_page.dart';
 import 'package:cloud_driver/util/util.dart';
@@ -18,15 +19,17 @@ class DioManager {
 
   factory DioManager() => _instance;
 
-  late final Dio defaultDio;
+  late final Dio _defaultDio;
+
+  final List<Completer<void>> _jobs = [];
 
   DioManager._internal() {
-    defaultDio = Dio(BaseOptions(
+    _defaultDio = Dio(BaseOptions(
         baseUrl: NetworkConfig.urlBase,
         connectTimeout: NetworkConfig.timeoutReceive));
-    defaultDio.interceptors
+    _defaultDio.interceptors
         .add(LogInterceptor(responseBody: true, requestBody: true));
-    defaultDio.interceptors.add(MyInterceptor());
+    _defaultDio.interceptors.add(MyInterceptor());
   }
 
   Future<BaseEntity<T>?> doPost<T>(
@@ -37,6 +40,9 @@ class DioManager {
       ProgressCallback? onSendProgress,
       Handler<T>? interceptor}) async {
     final dialogCompleter = Completer<BuildContext>();
+    final job = Completer<void>();
+
+    _jobs.add(job);
 
     showDialog(
         context: context,
@@ -55,7 +61,7 @@ class DioManager {
         });
 
     final value =
-        await defaultDio.post(api, data: data, onSendProgress: onSendProgress);
+        await _defaultDio.post(api, data: data, onSendProgress: onSendProgress);
 
     final dialogContext = await dialogCompleter.future;
 
@@ -63,36 +69,48 @@ class DioManager {
 
     BaseEntity<T> baseEntity = transformer.call(json.decode(value.toString()));
 
-    BaseEntity<T>? defaultHandle(BaseEntity<T> baseEntity) {
-      if (baseEntity.code != NetworkConfig.codeOk) {
-        ToastUtil.showDefaultToast(context, baseEntity.message);
-      }
-
-      switch (baseEntity.code) {
-        case NetworkConfig.codeOk:
-          return baseEntity;
-        case NetworkConfig.codeTokenTimeOut:
-          Navigator.of(context).pushNamed("/login", arguments: LoginArgs(true));
-          break;
-        case NetworkConfig.codeUnOrPwError:
-          break;
-      }
-      return null;
-    }
+    final BaseEntity<T>? result;
 
     if (interceptor != null) {
-      return interceptor.call(baseEntity, defaultHandle);
+      result = interceptor.call(baseEntity, defaultHandle);
+    } else {
+      result = defaultHandle(baseEntity);
     }
 
-    return defaultHandle(baseEntity);
+    job.complete();
+    _jobs.remove(job);
+
+    return result;
   }
 
-  Future<void> nextFrame() async {
-    final completer = Completer<void>();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      completer.complete();
-    });
-    await completer.future;
+  BaseEntity<T>? defaultHandle<T>(BaseEntity<T> baseEntity) {
+    final context = MyApp.navigatorKey.currentContext;
+
+    if (baseEntity.code != NetworkConfig.codeOk) {
+      if (context != null) {
+        ToastUtil.showDefaultToast(context, baseEntity.message);
+      }
+    }
+
+    switch (baseEntity.code) {
+      case NetworkConfig.codeOk:
+        return baseEntity;
+      case NetworkConfig.codeTokenTimeOut:
+        if (context != null) {
+          Navigator.of(context).pushNamed("/login", arguments: LoginArgs(true));
+        }
+        break;
+      case NetworkConfig.codeUnOrPwError:
+        break;
+    }
+    return null;
+  }
+
+  void waitJobsFinish() async {
+    final it = _jobs.iterator;
+    while (it.moveNext()) {
+      await it.current.future;
+    }
   }
 }
 

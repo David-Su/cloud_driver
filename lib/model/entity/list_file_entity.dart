@@ -23,12 +23,15 @@ class ListFileResult {
   String? previewImg;
 
   //当前列表滚动位置，非网络数据
+  @JsonKey(ignore: true)
   double? position;
 
   //数据大小显示，非网络数据
+  @JsonKey(ignore: true)
   String displaySize = "";
 
   //previewImg生成的完整url
+  @JsonKey(ignore: true)
   String? previewImgUrl;
 
   ListFileResult(

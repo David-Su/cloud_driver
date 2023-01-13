@@ -1,3 +1,5 @@
+import '../../model/entity/update_task_entity.dart';
+
 abstract class FilePageEvent {
   const FilePageEvent();
 }
@@ -55,6 +57,7 @@ class PlayVideoEvent extends FilePageEvent {
   static const typePotPlayer = 1;
   final int type;
   final int index;
+
   PlayVideoEvent(this.type, this.index);
 }
 
@@ -66,3 +69,10 @@ class ShowWaitServerDialogSuccessEvent extends FilePageEvent {}
 
 //切换表格或列表视图
 class SwitchViewEvent extends FilePageEvent {}
+
+//更新进行中的任务
+class UpdateTasksEvent extends FilePageEvent {
+  final List<UpdateTaskEntity> updateTasks;
+
+  UpdateTasksEvent(this.updateTasks);
+}

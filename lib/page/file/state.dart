@@ -1,4 +1,5 @@
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
+import 'package:cloud_driver/model/entity/update_task_entity.dart';
 
 class FilePageState {
   //当前路径
@@ -26,6 +27,9 @@ class FilePageState {
   //是否为表格视图
   bool isGridView = true;
 
+  //进行中的任务
+  List<UpdateTaskEntity> updateTasks= [];
+
   FilePageState clone() {
     return FilePageState()
       ..paths = paths
@@ -35,6 +39,7 @@ class FilePageState {
       ..uploadProgress = uploadProgress
       ..displaySpeed = displaySpeed
       ..speed = speed
-      ..isGridView = isGridView;
+      ..isGridView = isGridView
+      ..updateTasks = updateTasks;
   }
 }
