@@ -4,10 +4,13 @@ import 'dart:math';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
+import 'package:cloud_driver/route/PopupWindowRoute.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mime/mime.dart';
 
+import '../../model/entity/update_task_entity.dart';
+import '../../util/util.dart';
 import 'bloc.dart';
 import 'event.dart';
 import 'state.dart';
@@ -21,7 +24,7 @@ class FilePage extends StatefulWidget {
 
 class _FilePageState extends State<FilePage> {
   final _scrollController = ScrollController();
-
+  final _taskButtonKey = GlobalKey();
   late final FilePageBloc _bloc;
 
   @override
@@ -102,7 +105,8 @@ class _FilePageState extends State<FilePage> {
               }
             },
             listenWhen: (FilePageState previous, FilePageState current) =>
-                previous.showWaitServerDialog != current.showWaitServerDialog,
+                // previous.showWaitServerDialog != current.showWaitServerDialog,
+                false,
           ),
           BlocListener<FilePageBloc, FilePageState>(
             listener: (BuildContext context, FilePageState state) async {
@@ -182,8 +186,9 @@ class _FilePageState extends State<FilePage> {
               }
             },
             listenWhen: (FilePageState previous, FilePageState current) =>
-                previous.showUploadProgressDialog !=
-                current.showUploadProgressDialog,
+                // previous.showUploadProgressDialog !=
+                // current.showUploadProgressDialog,
+                false,
           )
         ],
         child: WillPopScope(
@@ -259,6 +264,86 @@ class _FilePageState extends State<FilePage> {
                             child: Container(
                           height: 0,
                         )),
+                        IconButton(
+                            key: _taskButtonKey,
+                            onPressed: () {
+                              if (_bloc.state.updateTasks.isEmpty) {
+                                ToastUtil.showDefaultToast(context, "没有任务");
+                                return;
+                              }
+
+                              final renderOjb = _taskButtonKey.currentContext
+                                  ?.findRenderObject();
+
+                              if (renderOjb is RenderBox) {
+                                final offset =
+                                    renderOjb.localToGlobal(Offset.zero);
+
+                                final right =
+                                    MediaQuery.of(context).size.width -
+                                        offset.dx -
+                                        renderOjb.size.width;
+                                final top = offset.dy + renderOjb.size.height;
+
+                                Navigator.push(
+                                    context,
+                                    PopupWindowRoute((BuildContext
+                                            routeContext) =>
+                                        PopupWindow(
+                                          BlocProvider.value(
+                                            value: _bloc,
+                                            child: BlocBuilder<FilePageBloc,
+                                                    FilePageState>(
+                                                buildWhen:
+                                                    (FilePageState previous,
+                                                            FilePageState
+                                                                current) =>
+                                                        previous.updateTasks !=
+                                                        current.updateTasks,
+                                                builder: (BuildContext context,
+                                                    FilePageState state) {
+                                                  final tasks =
+                                                      state.updateTasks;
+
+                                                  return Card(
+                                                    child: Container(
+                                                        //     decoration: BoxDecoration(
+                                                        //     color: Colors.white,
+                                                        //     borderRadius: const BorderRadius.all(Radius.circular(5)),
+                                                        // border: Border.all(color: Colors.grey, width: 0.3)),
+                                                        width: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width /
+                                                            3,
+                                                        child: tasks.isNotEmpty
+                                                            ? _buildTaskList(
+                                                                state
+                                                                    .updateTasks)
+                                                            : const Center(
+                                                                child: Padding(
+                                                                  padding: EdgeInsets
+                                                                      .symmetric(
+                                                                          vertical:
+                                                                              5),
+                                                                  child: Text(
+                                                                      "没有进行中的任务"),
+                                                                ),
+                                                              )),
+                                                  );
+                                                }),
+                                          ),
+                                          alignment:
+                                              AlignmentDirectional.topEnd,
+                                          right: right,
+                                          top: top,
+                                        )));
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.backup,
+                              color: Colors.black45,
+                            )),
                         BlocBuilder<FilePageBloc, FilePageState>(
                           buildWhen:
                               (FilePageState previous, FilePageState current) =>
@@ -288,12 +373,12 @@ class _FilePageState extends State<FilePage> {
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: buildPathList(),
+                        child: _buildPathList(),
                       ),
                     )),
                 _getDivider(),
                 Flexible(
-                  child: buildChildrenList(),
+                  child: _buildChildrenList(),
                 ),
               ],
             ),
@@ -307,7 +392,46 @@ class _FilePageState extends State<FilePage> {
     );
   }
 
-  Widget buildChildrenList() => BlocBuilder<FilePageBloc, FilePageState>(
+  /// 云端任务列表
+  Widget _buildTaskList(List<UpdateTaskEntity> tasks) {
+    return ListView.separated(
+        shrinkWrap: true,
+        itemBuilder: (BuildContext context, int index) {
+          final task = tasks[index];
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(task.path ?? "",
+                    style: const TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.bold)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                        child: LinearProgressIndicator(
+                      value: task.progress ?? 0,
+                    )),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    Text(
+                      task.displaySpeed,
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          );
+        },
+        separatorBuilder: (BuildContext context, int index) => _getDivider(),
+        itemCount: tasks.length);
+  }
+
+  Widget _buildChildrenList() => BlocBuilder<FilePageBloc, FilePageState>(
         builder: (BuildContext context, FilePageState state) {
           final children = state.children;
 
@@ -341,9 +465,9 @@ class _FilePageState extends State<FilePage> {
                           return GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onSecondaryTapUp: (TapUpDetails details) async =>
-                                await onSecondaryTapUp(
+                                await _onSecondaryTapUp(
                                     file, context, details, index),
-                            onTap: () => onTap(file, index),
+                            onTap: () => _onTap(file, index),
                             child: Container(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 10),
@@ -417,9 +541,9 @@ class _FilePageState extends State<FilePage> {
                           ),
                         ),
                         onSecondaryTapUp: (TapUpDetails details) async =>
-                            await onSecondaryTapUp(
+                            await _onSecondaryTapUp(
                                 file, context, details, index),
-                        onTap: () => onTap(file, index),
+                        onTap: () => _onTap(file, index),
                       );
                     },
                   ),
@@ -430,13 +554,13 @@ class _FilePageState extends State<FilePage> {
             previous.children.length != current.children.length,
       );
 
-  void onTap(ListFileResult file, int index) {
+  void _onTap(ListFileResult file, int index) {
     if (file.isDir) {
       _bloc.add(ForwardEvent(index));
     }
   }
 
-  Future<void> onSecondaryTapUp(ListFileResult file, BuildContext context,
+  Future<void> _onSecondaryTapUp(ListFileResult file, BuildContext context,
       TapUpDetails details, int index) async {
     final mimeType = lookupMimeType(file.name);
 
@@ -507,7 +631,7 @@ class _FilePageState extends State<FilePage> {
     }
   }
 
-  Widget buildPathList() => BlocBuilder<FilePageBloc, FilePageState>(
+  Widget _buildPathList() => BlocBuilder<FilePageBloc, FilePageState>(
         builder: (BuildContext context, FilePageState state) {
           var paths = state.paths;
           return ListView.separated(
@@ -536,9 +660,7 @@ class _FilePageState extends State<FilePage> {
             previous.paths.length != current.paths.length,
       );
 
-  Widget _getDivider() => const Divider(
-        height: 5,
-      );
+  Widget _getDivider() => const Divider(height: 0.5, thickness: 0.5);
 
   Future<void> _nextFrame() async {
     final completer = Completer<void>();
