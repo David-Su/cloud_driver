@@ -52,6 +52,8 @@ dependencies:
 
   web_socket_channel: ^2.2.0
 
+  dropdown_button2: ^1.9.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

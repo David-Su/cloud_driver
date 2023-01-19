@@ -49,7 +49,9 @@ class DownloadFileEvent extends FilePageEvent {
 
 //上传文件
 class UploadFileEvent extends FilePageEvent {
-  UploadFileEvent(); //文件在列表中的索引
+  final bool dir;
+
+  UploadFileEvent(this.dir); //文件在列表中的索引
 }
 
 //播放视频
