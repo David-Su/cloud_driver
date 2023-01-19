@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:html' as html;
+import 'dart:io';
+import 'dart:math';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
@@ -99,7 +101,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   }
 
   FutureOr<void> _createDir(
-      CreateDirEvent event, Emitter<FilePageState> emit) async {
+      CreateDirEvent event, Emitter<FilePageState>? emit) async {
     final name = event.name;
 
     final paths = _getWholePathList(fileName: name);
@@ -113,7 +115,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     if (createDirEntity == null) return;
 
-    await _refresh(emit);
+    if (emit != null) {
+      await _refresh(emit);
+    }
   }
 
   FutureOr<void> _deleteFile(
@@ -281,36 +285,40 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         .open(await _getDownloadUrl(state.children[event.index].name), "_self");
   }
 
-  Future<void>? _uploadFileComplete;
-
   Future<void> _uploadFile(
-      UploadFileEvent event, Emitter<FilePageState> emit) async {
+      UploadFileEvent uploadFileEvent, Emitter<FilePageState> emit) async {
     // await _uploadOldWay(emit);
 
     final currentUploadCompleter = Completer();
 
-    if (_uploadFileComplete != null) {
-      _uploadFileComplete =
-          _uploadFileComplete?.then((value) => currentUploadCompleter.future);
-    } else {
-      _uploadFileComplete = Future.wait([currentUploadCompleter.future]);
-    }
-
     final token =
         (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
-    final filePath = _getWholePathStr();
 
     final element = html.InputElement(type: 'file');
     // final element = html.FileUploadInputElement();
     element.multiple = true;
     element.draggable = false;
-    // element.directory = true;
+    element.directory = uploadFileEvent.dir;
     element.click();
 
-    element.onChange.listen((event) {
+    element.onChange.listen((event) async {
       final files = element.files;
+
       if (files == null || files.isEmpty == true) {
         return;
+      }
+
+      final String filePath;
+
+      if (uploadFileEvent.dir) {
+        // final dir = element.dirName;
+        final dir = files.first.relativePath?.split("/").first;
+        if (dir != null && dir.isNotEmpty) {
+          await _createDir(CreateDirEvent(dir), emit);
+        }
+        filePath = "${_getWholePathStr()},$dir";
+      } else {
+        filePath = _getWholePathStr();
       }
 
       int loadEndFlag = 0;
@@ -340,13 +348,6 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     });
 
     await currentUploadCompleter.future;
-
-    Future? uploadFileComplete;
-
-    while (uploadFileComplete != _uploadFileComplete) { //如果第二次进入了while，证明_uploadFileComplete被更新了，也就是还有新的任务要等待
-      uploadFileComplete = _uploadFileComplete;
-      await uploadFileComplete;
-    }
 
     add(InitEvent());
   }
