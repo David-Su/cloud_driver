@@ -448,8 +448,13 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   Future<String> _getDownloadUrl(String? fileName) async {
     final sp = await SharedPreferences.getInstance();
 
-    final filePaths = const Base64Encoder.urlSafe()
-        .convert(utf8.encode(_getWholePathStr(fileName: fileName)));
+    final filePathsJson = json.encode(_getWholePathList(fileName: fileName));
+
+    final filePaths = const Base64Encoder
+        .urlSafe()
+        .convert(utf8.encode(filePathsJson));
+
+    final aa = Utf8Decoder().convert(Base64Decoder().convert(filePaths));
 
     return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=$filePaths";
   }

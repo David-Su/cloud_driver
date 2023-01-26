@@ -43,7 +43,7 @@ class NetworkConfig {
       case ChannelConfig.channelIntranet:
         return "192.168.1.2:8080";
     }
-    // return "172.17.22.65:8080"; //mac
+    // return "192.168.1.2:8080"; //mac
     return "127.0.0.1:8080"; //本机
     // return "8.218.97.215:8080"; //阿里云
   }
