@@ -84,7 +84,7 @@ class DioManager {
   }
 
   BaseEntity<T>? defaultHandle<T>(BaseEntity<T> baseEntity) {
-    final context = MyApp.navigatorKey.currentContext;
+    final context = MyApp.navigatorKey.currentState?.overlay?.context;
 
     if (baseEntity.code != NetworkConfig.codeOk) {
       if (context != null) {

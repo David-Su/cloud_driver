@@ -46,6 +46,8 @@ class _FilePageState extends State<FilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final uploadMenuController = MenuController();
+
     return BlocProvider(
       create: (_) => _bloc,
       child: MultiBlocListener(
@@ -207,41 +209,35 @@ class _FilePageState extends State<FilePage> {
                     padding: const EdgeInsets.fromLTRB(5, 7, 0, 15),
                     child: Row(
                       children: [
-                        DropdownButtonHideUnderline(
-                          child: DropdownButton2(
-                            focusColor: Colors.transparent,
-                            items: const [
-                              DropdownMenuItem<int>(value: 0,child: Text("文件")),
-                              DropdownMenuItem<int>(value: 1,child: Text("文件夹")),
-                            ],
-                            onChanged: (value) {
-                              switch(value){
-                                case 0:
-                                  _bloc.add(UploadFileEvent(false));
-                                  break;
-                                case 1:
-                                  _bloc.add(UploadFileEvent(true));
-                                  break;
-                              }
-                            } ,
-                            // customButton: const Icon(
-                            //   Icons.list,
-                            //   size: 46,
-                            //   color: Colors.red,
-                            // ),
-                            customButton: AbsorbPointer(
-                              absorbing: true,
-                              child: ElevatedButton.icon(
-                                  onPressed: () => _bloc.add(UploadFileEvent(false)),
+                        MenuAnchor(
+                          controller: uploadMenuController,
+                          builder: (
+                              BuildContext context,
+                              MenuController controller,
+                              Widget? child,
+                              ) =>
+                              ElevatedButton.icon(
+                                  onPressed: () {
+                                    if(uploadMenuController.isOpen) {
+                                      uploadMenuController.close();
+                                    } else {
+                                      uploadMenuController.open();
+                                    }
+                                  },
                                   style: ButtonStyle(
                                       shape: MaterialStateProperty.all(
                                           RoundedRectangleBorder(
                                               borderRadius:
-                                                  BorderRadius.circular(12)))),
+                                              BorderRadius.circular(12)))),
                                   icon: const Icon(Icons.cloud_upload_rounded),
                                   label: const Text("上传")),
-                            ),
-                          ),
+                          menuChildren: [MenuItemButton(
+                            onPressed: () => _bloc.add(UploadFileEvent(false)),
+                            child: const Text("文件"),
+                          ),MenuItemButton(
+                            onPressed: () => _bloc.add(UploadFileEvent(true)),
+                            child: const Text("文件夹"),
+                          )],
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 5),
