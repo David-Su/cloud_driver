@@ -10,7 +10,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-typedef DefaultHandle<T> = BaseEntity<T>? Function(BaseEntity<T> baseEntity);
+typedef DefaultHandle<T> = BaseEntity<T>? Function(
+    BuildContext context, BaseEntity<T> baseEntity);
 typedef Handler<T> = BaseEntity<T>? Function(
     BaseEntity<T> baseEntity, DefaultHandle<T> defaultHandler);
 
@@ -60,21 +61,30 @@ class DioManager {
           );
         });
 
-    final value =
-        await _defaultDio.post(api, data: data, onSendProgress: onSendProgress);
+    BaseEntity<T>? result;
 
-    final dialogContext = await dialogCompleter.future;
+    try {
+      final value = await _defaultDio.post(api,
+          data: data, onSendProgress: onSendProgress);
 
-    Navigator.of(dialogContext).pop();
+      final dialogContext = await dialogCompleter.future;
 
-    BaseEntity<T> baseEntity = transformer.call(json.decode(value.toString()));
+      Navigator.of(dialogContext).pop();
 
-    final BaseEntity<T>? result;
+      BaseEntity<T> baseEntity =
+          transformer.call(json.decode(value.toString()));
 
-    if (interceptor != null) {
-      result = interceptor.call(baseEntity, defaultHandle);
-    } else {
-      result = defaultHandle(baseEntity);
+      if (interceptor != null) {
+        result = interceptor.call(baseEntity, defaultHandle);
+      } else {
+        result = defaultHandle(context, baseEntity);
+      }
+    } catch (err) {
+      final dialogContext = await dialogCompleter.future;
+
+      Navigator.of(dialogContext).pop();
+
+      result = null;
     }
 
     job.complete();
@@ -83,22 +93,17 @@ class DioManager {
     return result;
   }
 
-  BaseEntity<T>? defaultHandle<T>(BaseEntity<T> baseEntity) {
-    final context = MyApp.navigatorKey.currentState?.overlay?.context;
-
+  BaseEntity<T>? defaultHandle<T>(
+      BuildContext context, BaseEntity<T> baseEntity) {
     if (baseEntity.code != NetworkConfig.codeOk) {
-      if (context != null) {
-        ToastUtil.showDefaultToast(context, baseEntity.message);
-      }
+      ToastUtil.showDefaultToast(context, baseEntity.message);
     }
 
     switch (baseEntity.code) {
       case NetworkConfig.codeOk:
         return baseEntity;
       case NetworkConfig.codeTokenTimeOut:
-        if (context != null) {
-          Navigator.of(context).pushNamed("/login", arguments: LoginArgs(true));
-        }
+        Navigator.of(context).pushNamed("/login", arguments: LoginArgs(true));
         break;
       case NetworkConfig.codeUnOrPwError:
         break;

@@ -203,7 +203,7 @@ class _FilePageState extends State<FilePage> {
             body: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               // shrinkWrap: true,
-              // mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
                     padding: const EdgeInsets.fromLTRB(5, 7, 0, 15),
@@ -212,32 +212,32 @@ class _FilePageState extends State<FilePage> {
                         MenuAnchor(
                           controller: uploadMenuController,
                           builder: (
-                              BuildContext context,
-                              MenuController controller,
-                              Widget? child,
-                              ) =>
+                            BuildContext context,
+                            MenuController controller,
+                            Widget? child,
+                          ) =>
                               ElevatedButton.icon(
                                   onPressed: () {
-                                    if(uploadMenuController.isOpen) {
+                                    if (uploadMenuController.isOpen) {
                                       uploadMenuController.close();
                                     } else {
                                       uploadMenuController.open();
                                     }
                                   },
-                                  style: ButtonStyle(
-                                      shape: MaterialStateProperty.all(
-                                          RoundedRectangleBorder(
-                                              borderRadius:
-                                              BorderRadius.circular(12)))),
+                                  style: _getButtonStyle(),
                                   icon: const Icon(Icons.cloud_upload_rounded),
                                   label: const Text("上传")),
-                          menuChildren: [MenuItemButton(
-                            onPressed: () => _bloc.add(UploadFileEvent(false)),
-                            child: const Text("文件"),
-                          ),MenuItemButton(
-                            onPressed: () => _bloc.add(UploadFileEvent(true)),
-                            child: const Text("文件夹"),
-                          )],
+                          menuChildren: [
+                            MenuItemButton(
+                              onPressed: () =>
+                                  _bloc.add(UploadFileEvent(false)),
+                              child: const Text("文件"),
+                            ),
+                            MenuItemButton(
+                              onPressed: () => _bloc.add(UploadFileEvent(true)),
+                              child: const Text("文件夹"),
+                            )
+                          ],
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 5),
@@ -277,11 +277,7 @@ class _FilePageState extends State<FilePage> {
 
                               _bloc.add(CreateDirEvent(name));
                             },
-                            style: ButtonStyle(
-                                shape: MaterialStateProperty.all(
-                                    RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)))),
+                            style: _getButtonStyle(),
                             icon: const Icon(Icons.create_new_folder),
                             label: const Text("新建文件夹")),
                         Expanded(
@@ -330,11 +326,7 @@ class _FilePageState extends State<FilePage> {
                                                       state.updateTasks;
 
                                                   return Card(
-                                                    child: Container(
-                                                        //     decoration: BoxDecoration(
-                                                        //     color: Colors.white,
-                                                        //     borderRadius: const BorderRadius.all(Radius.circular(5)),
-                                                        // border: Border.all(color: Colors.grey, width: 0.3)),
+                                                    child: SizedBox(
                                                         width: MediaQuery.of(
                                                                     context)
                                                                 .size
@@ -391,15 +383,19 @@ class _FilePageState extends State<FilePage> {
                             ))
                       ],
                     )),
-                SizedBox(
-                    height: 30,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: _buildPathList(),
-                      ),
-                    )),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  child: BlocBuilder<FilePageBloc, FilePageState>(
+                    builder: (BuildContext context, FilePageState state) {
+                      var paths = state.paths;
+                      return _buildPathList(paths);
+                    },
+                    buildWhen:
+                        (FilePageState previous, FilePageState current) =>
+                            previous.paths != current.paths,
+                  ),
+                ),
                 _getDivider(),
                 Flexible(
                   child: _buildChildrenList(),
@@ -413,6 +409,153 @@ class _FilePageState extends State<FilePage> {
           },
         ),
       ),
+    );
+  }
+
+  ButtonStyle _getButtonStyle() {
+    return ButtonStyle(
+        shape: MaterialStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
+  }
+
+  ///当前目录的文件列表
+  Widget _buildChildrenList() => BlocBuilder<FilePageBloc, FilePageState>(
+        builder: (BuildContext context, FilePageState state) {
+          final children = state.children;
+
+          return BlocBuilder<FilePageBloc, FilePageState>(
+            buildWhen: (FilePageState previous, FilePageState current) =>
+                previous.isGridView != current.isGridView,
+            builder: (BuildContext context, FilePageState state) => state
+                    .isGridView
+                ? LayoutBuilder(builder:
+                    (BuildContext context, BoxConstraints constraints) {
+                    debugPrint(
+                        "constraints.maxWidth => ${constraints.maxWidth}  屏幕 => ${html.window.screen?.width}");
+
+                    //假设窗口最大时横向为15个item
+                    final oneItemWidth = (html.window.screen?.width ?? 0) / 15;
+
+                    debugPrint("oneItemWidth -> ${oneItemWidth}");
+
+                    final crossAxisCount =
+                        max(constraints.maxWidth ~/ oneItemWidth, 1);
+
+                    return GridView.builder(
+                        controller: _scrollController,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            childAspectRatio: 1 / 1.5,
+                            crossAxisCount: crossAxisCount),
+                        itemCount: children.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final file = children[index];
+                          final previewImg = file.previewImg;
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onSecondaryTapUp: (TapUpDetails details) async =>
+                                await _onSecondaryTapUp(
+                                    file, context, details, index),
+                            onTap: () => _onFileItemTap(file, index),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: Column(
+                                children: [
+                                  FractionallySizedBox(
+                                    widthFactor: 1,
+                                    child: AspectRatio(
+                                        aspectRatio: 1 / 1,
+                                        child: previewImg != null
+                                            ? Image.network(
+                                                "${file.previewImgUrl}",
+                                                fit: BoxFit.contain,
+                                              )
+                                            : Icon(
+                                                file.isDir
+                                                    ? Icons.folder
+                                                    : Icons
+                                                        .description_outlined,
+                                                color: file.isDir
+                                                    ? Colors.orangeAccent
+                                                    : Colors.grey,
+                                              )),
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Expanded(
+                                      child: AutoSizeText(
+                                    file.name,
+                                  )),
+                                ],
+                              ),
+                            ),
+                          );
+                        });
+                  })
+                : _getVerticalFileList(children,
+                    scrollController: _scrollController,
+                    onSecondaryTapUp: _onSecondaryTapUp,
+                    onFileItemTap: _onFileItemTap),
+          );
+        },
+        buildWhen: (FilePageState previous, FilePageState current) =>
+            previous.children != current.children ||
+            previous.children.length != current.children.length,
+      );
+
+  ///纵向的文件列表
+  Widget _getVerticalFileList(List<ListFileResult> children,
+      {bool dirOnly = false, //只显示文件夹
+      ScrollController? scrollController,
+      Future<void> Function(ListFileResult file, BuildContext context,
+              TapUpDetails details, int index)?
+          onSecondaryTapUp,
+      void Function(ListFileResult file, int index)? onFileItemTap}) {
+    final List<ListFileResult> items;
+
+    if (dirOnly) {
+      final copy = children.toList();
+      copy.removeWhere((element) => !element.isDir);
+      items = copy;
+    } else {
+      items = children;
+    }
+
+    return ListView.separated(
+      controller: scrollController,
+      shrinkWrap: true,
+      separatorBuilder: (BuildContext context, int index) => _getDivider(),
+      itemCount: items.length,
+      itemBuilder: (BuildContext context, int index) {
+        final file = items[index];
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(15, 10, 10, 10),
+            child: Row(
+              children: [
+                Icon(
+                  file.isDir ? Icons.folder : Icons.description_outlined,
+                  color: file.isDir ? Colors.orangeAccent : Colors.grey,
+                  size: 29,
+                ),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 3)),
+                Text(file.name,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                    )),
+                const Spacer(),
+                Text(file.displaySize),
+              ],
+              mainAxisSize: MainAxisSize.max,
+            ),
+          ),
+          onSecondaryTapUp: (TapUpDetails details) async =>
+              onSecondaryTapUp?.call(file, context, details, index),
+          onTap: () => onFileItemTap?.call(file, index),
+        );
+      },
     );
   }
 
@@ -455,135 +598,14 @@ class _FilePageState extends State<FilePage> {
         itemCount: tasks.length);
   }
 
-  Widget _buildChildrenList() => BlocBuilder<FilePageBloc, FilePageState>(
-        builder: (BuildContext context, FilePageState state) {
-          final children = state.children;
-
-          return BlocBuilder<FilePageBloc, FilePageState>(
-            buildWhen: (FilePageState previous, FilePageState current) =>
-                previous.isGridView != current.isGridView,
-            builder: (BuildContext context, FilePageState state) => state
-                    .isGridView
-                ? LayoutBuilder(builder:
-                    (BuildContext context, BoxConstraints constraints) {
-                    debugPrint(
-                        "constraints.maxWidth => ${constraints.maxWidth}  屏幕 => ${html.window.screen?.width}");
-
-                    //假设窗口最大时横向为15个item
-                    final oneItemWidth = (html.window.screen?.width ?? 0) / 15;
-
-                    debugPrint("oneItemWidth -> ${oneItemWidth}");
-
-                    final crossAxisCount =
-                        max(constraints.maxWidth ~/ oneItemWidth, 1);
-
-                    return GridView.builder(
-                        controller: _scrollController,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            childAspectRatio: 1 / 1.5,
-                            crossAxisCount: crossAxisCount),
-                        itemCount: children.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final file = children[index];
-                          final previewImg = file.previewImg;
-                          return GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onSecondaryTapUp: (TapUpDetails details) async =>
-                                await _onSecondaryTapUp(
-                                    file, context, details, index),
-                            onTap: () => _onTap(file, index),
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10),
-                              child: Column(
-                                children: [
-                                  FractionallySizedBox(
-                                    widthFactor: 1,
-                                    child: AspectRatio(
-                                        aspectRatio: 1 / 1,
-                                        child: previewImg != null
-                                            ? Image.network(
-                                                "${file.previewImgUrl}",
-                                                fit: BoxFit.contain,
-                                              )
-                                            : Icon(
-                                                file.isDir
-                                                    ? Icons.folder
-                                                    : Icons
-                                                        .description_outlined,
-                                                color: file.isDir
-                                                    ? Colors.orangeAccent
-                                                    : Colors.grey,
-                                              )),
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Expanded(
-                                      child: AutoSizeText(
-                                    file.name,
-                                  )),
-                                ],
-                              ),
-                            ),
-                          );
-                        });
-                  })
-                : ListView.separated(
-                    controller: _scrollController,
-                    shrinkWrap: true,
-                    separatorBuilder: (BuildContext context, int index) =>
-                        _getDivider(),
-                    itemCount: children.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final file = children[index];
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(15, 10, 10, 10),
-                          child: Row(
-                            children: [
-                              Icon(
-                                file.isDir
-                                    ? Icons.folder
-                                    : Icons.description_outlined,
-                                color: file.isDir
-                                    ? Colors.orangeAccent
-                                    : Colors.grey,
-                                size: 29,
-                              ),
-                              const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 3)),
-                              Text(file.name,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
-                                  )),
-                              const Spacer(),
-                              Text(file.displaySize),
-                            ],
-                            mainAxisSize: MainAxisSize.max,
-                          ),
-                        ),
-                        onSecondaryTapUp: (TapUpDetails details) async =>
-                            await _onSecondaryTapUp(
-                                file, context, details, index),
-                        onTap: () => _onTap(file, index),
-                      );
-                    },
-                  ),
-          );
-        },
-        buildWhen: (FilePageState previous, FilePageState current) =>
-            previous.children != current.children ||
-            previous.children.length != current.children.length,
-      );
-
-  void _onTap(ListFileResult file, int index) {
+  ///文件的点击事件
+  void _onFileItemTap(ListFileResult file, int index) {
     if (file.isDir) {
       _bloc.add(ForwardEvent(index));
     }
   }
 
+  ///右键点击处理
   Future<void> _onSecondaryTapUp(ListFileResult file, BuildContext context,
       TapUpDetails details, int index) async {
     final mimeType = lookupMimeType(file.name);
@@ -595,8 +617,10 @@ class _FilePageState extends State<FilePage> {
     const idDelete = 0;
     const idDownload = 1;
     const idPlayVideo = 2;
+    const idRename = 3;
+    const idMove = 4;
 
-    final data = {idDelete: "删除"};
+    final data = {idDelete: "删除", idRename: "重命名", idMove: "移动到"};
 
     if (!file.isDir) {
       data.addAll({idDownload: "下载"});
@@ -605,8 +629,7 @@ class _FilePageState extends State<FilePage> {
       }
     }
 
-    final overlay =
-        Overlay.of(context)?.context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     int? id = await showMenu<int>(
         context: context,
         items: data.entries
@@ -652,37 +675,180 @@ class _FilePageState extends State<FilePage> {
       case idPlayVideo:
         _bloc.add(PlayVideoEvent(PlayVideoEvent.typePotPlayer, index));
         break;
+      case idRename:
+        final controller = TextEditingController(text: file.name);
+
+        final confirm = await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => AlertDialog(
+                  title: const Text("请输入文件名"),
+                  content: TextField(
+                    controller: controller,
+                  ),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          if (controller.text == file.name) {
+                            ToastUtil.showDefaultToast(context, "请使用新的命名");
+                          } else {
+                            Navigator.of(context).pop(true);
+                          }
+                        },
+                        child: const Text("确定")),
+                    TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text("取消"))
+                  ],
+                ));
+
+        final newName = controller.text;
+
+        if (!confirm || newName.isEmpty) {
+          return;
+        }
+
+        _bloc.add(RenameEvent(index, newName));
+
+        break;
+      case idMove:
+        //通知bloc加载目录数据
+        _bloc.add(ShowDirChooseDialogEvent());
+        showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            builder: (BuildContext context) => BlocProvider.value(
+                value: _bloc,
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.8,
+                  child: Column(
+                    // mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      Stack(
+                        alignment: AlignmentDirectional.center,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: BlocBuilder<FilePageBloc, FilePageState>(
+                                buildWhen: (FilePageState previous,
+                                        FilePageState current) =>
+                                    previous.dirChoosePaths !=
+                                    current.dirChoosePaths,
+                                builder: (BuildContext context,
+                                        FilePageState state) =>
+                                    Visibility(
+                                        maintainSize: true,
+                                        maintainAnimation: true,
+                                        maintainState: true,
+                                        visible:
+                                            state.dirChoosePaths.length > 1,
+                                        child: BackButton(
+                                          color: Colors.black45,
+                                          onPressed: () {
+                                            _bloc.add(DirChooseBackwardEvent());
+                                          },
+                                        ))),
+                          ),
+                          const Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              "移动到",
+                              textScaleFactor: 1.2,
+                              style: TextStyle(
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          )
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: BlocBuilder<FilePageBloc, FilePageState>(
+                            buildWhen: (FilePageState previous,
+                                    FilePageState current) =>
+                                previous.dirChoosePaths !=
+                                current.dirChoosePaths,
+                            builder:
+                                (BuildContext context, FilePageState state) =>
+                                    _buildPathList(state.dirChoosePaths)),
+                      ),
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      Expanded(
+                        child: BlocBuilder<FilePageBloc, FilePageState>(
+                            buildWhen: (FilePageState previous,
+                                    FilePageState current) =>
+                                previous.dirChoosePaths !=
+                                current.dirChoosePaths,
+                            builder:
+                                (BuildContext context, FilePageState state) {
+                              final children =
+                                  state.dirChoosePaths.last.children;
+                              return children != null
+                                  ? _getVerticalFileList(children,
+                                      dirOnly: true,
+                                      onFileItemTap:
+                                          (ListFileResult file, int index) =>
+                                              _bloc.add(
+                                                  DirChooseForwardEvent(index)))
+                                  : Container();
+                            }),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Row(
+                          children: [
+                            const Spacer(),
+                            ElevatedButton(
+                              style: _getButtonStyle(),
+                              child: const Text(
+                                "移到此处",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _bloc.add(MoveFileEvent(index));
+                              },
+                            )
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )));
+        break;
     }
   }
 
-  Widget _buildPathList() => BlocBuilder<FilePageBloc, FilePageState>(
-        builder: (BuildContext context, FilePageState state) {
-          var paths = state.paths;
-          return ListView.separated(
-              separatorBuilder: (BuildContext context, int index) => Center(
-                    child: Text(
-                      "  >  ",
-                      style:
-                          TextStyle(color: Theme.of(context).primaryColorLight),
-                    ),
-                  ),
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              itemCount: paths.length,
-              itemBuilder: (BuildContext context, int index) {
-                return Center(
-                    child: Text(paths[index].name,
-                        style: TextStyle(
-                          color: index == paths.length - 1
-                              ? Theme.of(context).unselectedWidgetColor
-                              : Theme.of(context).primaryColorDark,
-                        )));
-              });
-        },
-        buildWhen: (FilePageState previous, FilePageState current) =>
-            previous.paths != current.paths ||
-            previous.paths.length != current.paths.length,
-      );
+  ///当前路径横向列表
+  Widget _buildPathList(List<ListFileResult> paths) {
+    final List<Widget> children = [];
+
+    for (int index = 0; index < paths.length; index++) {
+      children.add(Text(paths[index].name,
+          style: TextStyle(
+            color: index == paths.length - 1
+                ? Theme.of(context).unselectedWidgetColor
+                : Theme.of(context).primaryColorDark,
+          )));
+      if (index < paths.length - 1) {
+        children.add(Text(
+          "  >  ",
+          style: TextStyle(color: Theme.of(context).primaryColorLight),
+        ));
+      }
+    }
+    return Row(
+      children: children,
+    );
+  }
 
   Widget _getDivider() => const Divider(height: 0.5, thickness: 0.5);
 
@@ -693,4 +859,8 @@ class _FilePageState extends State<FilePage> {
     });
     await completer.future;
   }
+
+// Widget _buildDirChooseWidget() {
+//   _bloc.state.children
+// }
 }

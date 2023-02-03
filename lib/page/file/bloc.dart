@@ -5,7 +5,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:bloc/bloc.dart';
+import 'package:cloud_driver/manager/event_bus_manager.dart';
+import 'package:cloud_driver/model/entity/rename_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
+import 'package:cloud_driver/model/event/event.dart';
+import 'package:cloud_driver/util/util.dart';
+import 'package:event_bus/event_bus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -23,6 +28,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   WebSocketChannel? webSocketChannel;
   Completer<void>? progressDialogCompleter;
   Completer<void>? waitServerDialogCompleter;
+  StreamSubscription? _reLoginSubscription;
 
   FilePageBloc(this._context) : super(FilePageState()) {
     on<InitEvent>(_init);
@@ -38,54 +44,72 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     on<ShowProgressDialogSuccessEvent>(_showProgressDialogSuccess);
     on<ShowWaitServerDialogSuccessEvent>(_showWaitServerDialogSuccess);
     on<SwitchViewEvent>(_switchView);
-    on<UpdateTasksEvent>(_updateTasksEvent);
+    on<UpdateTasksEvent>(_updateTasks);
+    on<RenameEvent>(_rename);
+    on<DirChooseForwardEvent>(_dirChooseForward);
+    on<ShowDirChooseDialogEvent>(_showDirChooseDialog);
+    on<MoveFileEvent>(_moveFileEvent);
+    on<DirChooseBackwardEvent>(_dirChooseBackward);
 
-    SharedPreferences.getInstance().then((sp) {
-      final token = sp.getString(SpConfig.keyToken);
+    //WebSocket监听服务端消息
+    _wsConn();
 
-      final channel = WebSocketChannel.connect(Uri.parse(
-          "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
-
-      channel.stream.listen((event) {
-        final Map<String, dynamic> eventJson = json.decode(event.toString());
-
-        final dataType = eventJson["dataType"] as int;
-        final data = eventJson["data"];
-
-        switch (dataType) {
-          case 0: //update
-            {
-              final tasks = (data as List<dynamic>).map((e) {
-                final entity = UpdateTaskEntity.fromJson(e);
-                entity.displaySpeed =
-                    "${_getDisplaySize(entity.speed?.toDouble() ?? 0)}/s";
-                return entity;
-              }).toList();
-
-              add(UpdateTasksEvent(tasks));
-
-              break;
-            }
-          case 1: //remove
-            {
-              final removePath = (data as String);
-              state.updateTasks
-                  .removeWhere((element) => element.path == removePath);
-              add(UpdateTasksEvent(List.of(state.updateTasks)));
-            }
-        }
-      });
-
-      channel.sink.add("hello from flutter");
-
-      webSocketChannel = channel;
+    //监听事件
+    _reLoginSubscription =
+        EventBusManager.eventBus.on<ReLoginEvent>().listen((event) async {
+      await _wsConn();
     });
+  }
+
+  Future<void> _wsConn() async {
+    webSocketChannel?.sink.close();
+
+    final token =
+        (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
+
+    final channel = WebSocketChannel.connect(Uri.parse(
+        "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
+
+    channel.stream.listen((event) {
+      final Map<String, dynamic> eventJson = json.decode(event.toString());
+
+      final dataType = eventJson["dataType"] as int;
+      final data = eventJson["data"];
+
+      switch (dataType) {
+        case 0: //update
+          {
+            final tasks = (data as List<dynamic>).map((e) {
+              final entity = UpdateTaskEntity.fromJson(e);
+              entity.displaySpeed =
+                  "${_getDisplaySize(entity.speed?.toDouble() ?? 0)}/s";
+              return entity;
+            }).toList();
+
+            add(UpdateTasksEvent(tasks));
+
+            break;
+          }
+        case 1: //remove
+          {
+            final removePath = (data as String);
+            state.updateTasks
+                .removeWhere((element) => element.path == removePath);
+            add(UpdateTasksEvent(List.of(state.updateTasks)));
+          }
+      }
+    });
+
+    channel.sink.add("hello from flutter");
+
+    webSocketChannel = channel;
   }
 
   @override
   Future<void> close() async {
     super.close();
     webSocketChannel?.sink.close();
+    _reLoginSubscription?.cancel();
   }
 
   Future<void> _init(InitEvent event, Emitter<FilePageState> emit) async {
@@ -450,18 +474,16 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     final filePathsJson = json.encode(_getWholePathList(fileName: fileName));
 
-    final filePaths = const Base64Encoder
-        .urlSafe()
-        .convert(utf8.encode(filePathsJson));
-
-    final aa = Utf8Decoder().convert(Base64Decoder().convert(filePaths));
+    final filePaths =
+        const Base64Encoder.urlSafe().convert(utf8.encode(filePathsJson));
 
     return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=$filePaths";
   }
 
   //获取完整路径数组
-  List<String> _getWholePathList({String? fileName}) {
-    final pathList = state.paths.map((e) => e.name).toList();
+  List<String> _getWholePathList(
+      {List<ListFileResult>? paths, String? fileName}) {
+    final pathList = (paths ?? state.paths).map((e) => e.name).toList();
 
     if (fileName != null) pathList.add(fileName);
 
@@ -513,8 +535,82 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     emit(state.clone()..isGridView = !state.isGridView);
   }
 
-  FutureOr<void> _updateTasksEvent(
+  FutureOr<void> _updateTasks(
       UpdateTasksEvent event, Emitter<FilePageState> emit) {
     emit(state.clone()..updateTasks = event.updateTasks);
+  }
+
+  Future<FutureOr<void>> _rename(
+      RenameEvent event, Emitter<FilePageState> emit) async {
+    final paths = _getWholePathList(fileName: state.children[event.index].name);
+    final newPaths = _getWholePathList(fileName: event.newName);
+
+    final result = await DioManager().doPost(
+        api: NetworkConfig.apiRenameFile,
+        data: {"paths": paths, "newPaths": newPaths},
+        transformer: (Map<String, dynamic> json) =>
+            RenameFileEntity.fromJson(json),
+        context: _context);
+
+    if (result != null) {
+      ToastUtil.showDefaultToast(_context, "修改成功");
+    }
+
+    add(InitEvent());
+  }
+
+  FutureOr<void> _showDirChooseDialog(
+      ShowDirChooseDialogEvent event, Emitter<FilePageState> emit) {
+    final paths = state.paths;
+
+    if (paths.isEmpty) return null;
+
+    emit(state.clone()..dirChoosePaths = [paths.first]);
+  }
+
+  Future<FutureOr<void>> _moveFileEvent(
+      MoveFileEvent event, Emitter<FilePageState> emit) async {
+    var fileName = state.children[event.index].name;
+    final paths = _getWholePathList(fileName: fileName);
+    final newPaths =
+        _getWholePathList(paths: state.dirChoosePaths, fileName: fileName);
+
+    final result = await DioManager().doPost(
+        api: NetworkConfig.apiRenameFile,
+        data: {"paths": paths, "newPaths": newPaths},
+        transformer: (Map<String, dynamic> json) =>
+            RenameFileEntity.fromJson(json),
+        context: _context);
+
+    if (result != null) {
+      ToastUtil.showDefaultToast(_context, "修改成功");
+    }
+
+    add(InitEvent());
+  }
+
+  FutureOr<void> _dirChooseForward(
+      DirChooseForwardEvent event, Emitter<FilePageState> emit) {
+    final paths = state.dirChoosePaths;
+
+    if (paths.isEmpty) return null;
+
+    final child = paths.last.children?[event.index];
+
+    if (child == null) return null;
+
+    final newPath = paths.toList();
+
+    newPath.add(child);
+
+    emit(state.clone()..dirChoosePaths = newPath);
+  }
+
+  FutureOr<void> _dirChooseBackward(
+      DirChooseBackwardEvent event, Emitter<FilePageState> emit) {
+    final paths = state.dirChoosePaths;
+    if (paths.length > 1) {
+      emit(state.clone()..dirChoosePaths = (paths.toList()..removeLast()));
+    }
   }
 }

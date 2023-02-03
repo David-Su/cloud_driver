@@ -40,7 +40,7 @@ dependencies:
   shared_preferences: ^2.0.13
 
   #flutter pub run build_runner build
-  json_annotation: ^4.5.0
+  json_annotation: ^4.8.0
 
   fluttertoast: ^8.0.9
 
@@ -53,6 +53,10 @@ dependencies:
   web_socket_channel: ^2.2.0
 
   dropdown_button2: ^1.9.2
+
+  event_bus: ^2.0.0
+
+  file: ^6.1.4
 
 dev_dependencies:
   flutter_test:

@@ -42,9 +42,10 @@ class RefreshDataEvent extends FilePageEvent {}
 
 //下载服务器文件
 class DownloadFileEvent extends FilePageEvent {
+  //文件在列表中的索引
   final int index;
 
-  DownloadFileEvent(this.index); //文件在列表中的索引
+  DownloadFileEvent(this.index);
 }
 
 //上传文件
@@ -77,4 +78,36 @@ class UpdateTasksEvent extends FilePageEvent {
   final List<UpdateTaskEntity> updateTasks;
 
   UpdateTasksEvent(this.updateTasks);
+}
+
+class RenameEvent extends FilePageEvent {
+  //文件在列表中的索引
+  final int index;
+  final String newName;
+
+  RenameEvent(this.index, this.newName);
+}
+
+class ShowDirChooseDialogEvent extends FilePageEvent {
+  ShowDirChooseDialogEvent();
+}
+
+//去到下一目录
+class DirChooseForwardEvent extends FilePageEvent {
+  //文件在列表中的索引
+  final int index;
+
+  DirChooseForwardEvent(this.index);
+}
+
+//去到下一目录
+class DirChooseBackwardEvent extends FilePageEvent {
+  DirChooseBackwardEvent();
+}
+
+//去到上一目录
+class MoveFileEvent extends FilePageEvent {
+  final int index;
+
+  MoveFileEvent(this.index);
 }

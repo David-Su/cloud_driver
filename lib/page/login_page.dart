@@ -1,7 +1,10 @@
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/manager/dio_manager.dart';
+import 'package:cloud_driver/manager/event_bus_manager.dart';
 import 'package:cloud_driver/model/entity/login_entity.dart';
+import 'package:cloud_driver/model/event/event.dart';
 import 'package:cloud_driver/model/global.dart';
+import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -111,6 +114,7 @@ class LoginPage extends StatelessWidget {
                         print("保存username->${Global.username}");
 
                         if (refreshToken) {
+                          EventBusManager.eventBus.fire(ReLoginEvent());
                           Navigator.of(context).pop();
                         } else {
                           Navigator.of(context).popAndPushNamed("/file");

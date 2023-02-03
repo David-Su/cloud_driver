@@ -17,6 +17,9 @@ class FilePageState {
   //是否弹出等待服务器dialog
   bool showWaitServerDialog = false;
 
+  //当前文件目录选择路径
+  List<ListFileResult> dirChoosePaths = [];
+
   //上传进度
   double uploadProgress = 0;
 
@@ -40,6 +43,8 @@ class FilePageState {
       ..displaySpeed = displaySpeed
       ..speed = speed
       ..isGridView = isGridView
-      ..updateTasks = updateTasks;
+      ..updateTasks = updateTasks
+      ..dirChoosePaths = dirChoosePaths
+    ;
   }
 }
