@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 /**
  * @Author SuK
@@ -21,8 +20,7 @@ class PopupWindowRoute extends PopupRoute {
   String? get barrierLabel => null;
 
   @override
-  Widget buildPage(BuildContext context, Animation<double> animation,
-      Animation<double> secondaryAnimation) {
+  Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
     return builder.call(context);
   }
 
@@ -38,24 +36,16 @@ class PopupWindow extends StatelessWidget {
   final double? bottom;
   final AlignmentGeometry? alignment;
 
-  const PopupWindow(this.child,
-      {Key? key, this.alignment, this.left, this.top, this.right, this.bottom})
-      : super(key: key);
+  const PopupWindow(this.child, {Key? key, this.alignment, this.left, this.top, this.right, this.bottom}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final positioned = Positioned(
-      child: child,
-      left: left,
-      top: top,
-      right: right,
-      bottom: bottom,
-    );
-
     final children = [
       Opacity(
         opacity: 1,
-       child: Container(color: Colors.black54,),
+        child: Container(
+          color: Colors.black54,
+        ),
       ),
       Positioned(
         child: child,

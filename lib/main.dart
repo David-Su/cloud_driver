@@ -2,6 +2,7 @@ import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/page/file/view.dart';
 import 'package:cloud_driver/page/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 void main() {
   print("main() 当前渠道->${ChannelConfig.channel}");
@@ -9,9 +10,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-
-  static final GlobalKey<NavigatorState> navigatorKey =
-      GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   const MyApp({Key? key}) : super(key: key);
 
@@ -39,6 +38,7 @@ class MyApp extends StatelessWidget {
         "/login": (BuildContext context) => LoginPage(),
         "/file": (BuildContext context) => const FilePage()
       },
+      builder: FToastBuilder(),
       home: LoginPage(),
     );
   }
