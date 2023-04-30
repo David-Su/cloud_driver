@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:cloud_driver/manager/platform/mobile_platform_adapter.dart'
-    if (kIsWeb) 'package:cloud_driver/manager/platform/web_platform_adapter.dart' as impl;
+    if (dart.library.html) 'package:cloud_driver/manager/platform/web_platform_adapter.dart' as impl;
 
 /// @Author SuK
 /// @Des
