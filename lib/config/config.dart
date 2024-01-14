@@ -40,12 +40,12 @@ class NetworkConfig {
         //todo
         return "";
       case ChannelConfig.channelInternetProxy:
-        return "8.218.97.215:8080";
+        return "fqym.top:6001";
       case ChannelConfig.channelIntranet:
-        return "192.168.1.2:8080";
+        return "192.168.1.205:8080";
     }
     // return "192.168.1.2:8080"; //mac
-    return "192.168.20.149:8080"; //本机
+    return "127.0.0.1:8080"; //本机
     // return "8.218.97.215:8080"; //阿里云
   }
 }

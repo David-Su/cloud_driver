@@ -21,7 +21,7 @@ class LoginPage extends StatelessWidget {
     if(kIsWeb) {
       body = _buildWebPage(context);
     } else {
-      body = _buildModilePage(context);
+      body = _buildMobilePage(context);
     }
     return Scaffold(
       body: body,
@@ -29,7 +29,7 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  Widget _buildModilePage(BuildContext context) {
+  Widget _buildMobilePage(BuildContext context) {
     final loginArgs = ModalRoute.of(context)?.settings.arguments as LoginArgs?;
 
     final unameController = TextEditingController();
@@ -57,10 +57,10 @@ class LoginPage extends StatelessWidget {
         Image.asset("graphics/ic_login.svg"),
         FractionallySizedBox(
           widthFactor: 0.8,
-          child: AspectRatio(aspectRatio: aspectRatio),
+          child: Container(),
         )
       ],
-    )
+    );
   }
 
   Widget _buildWebPage(BuildContext context) {
@@ -96,7 +96,7 @@ class LoginPage extends StatelessWidget {
         children: [
           Center(
             child: Image.network(
-              "web/icons/ic_login.svg",
+              "graphics/ic_login.svg",
               width: bgWidth,
               fit: BoxFit.fitWidth,
             ),
