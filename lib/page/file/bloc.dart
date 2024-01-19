@@ -53,7 +53,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     _wsConn();
 
     //监听事件
-    _reLoginSubscription = EventBusManager.eventBus.on<ReLoginEvent>().listen((event) async {
+    _reLoginSubscription =
+        EventBusManager.eventBus.on<ReLoginEvent>().listen((event) async {
       await _wsConn();
     });
   }
@@ -61,9 +62,11 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   Future<void> _wsConn() async {
     _webSocketChannel?.sink.close();
 
-    final token = (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
+    final token =
+        (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
 
-    final channel = WebSocketChannel.connect(Uri.parse("${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
+    final channel = WebSocketChannel.connect(Uri.parse(
+        "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
 
     channel.stream.listen((event) {
       final Map<String, dynamic> eventJson = json.decode(event.toString());
@@ -76,7 +79,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
           {
             final tasks = (data as List<dynamic>).map((e) {
               final entity = UpdateTaskEntity.fromJson(e);
-              entity.displaySpeed = "${_getDisplaySize(entity.speed?.toDouble() ?? 0)}/s";
+              entity.displaySpeed =
+                  "${_getDisplaySize(entity.speed?.toDouble() ?? 0)}/s";
               return entity;
             }).toList();
 
@@ -87,7 +91,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         case 1: //remove
           {
             final removePath = (data as String);
-            state.updateTasks.removeWhere((element) => element.path == removePath);
+            state.updateTasks
+                .removeWhere((element) => element.path == removePath);
             add(UpdateTasksEvent(List.of(state.updateTasks)));
           }
       }
@@ -117,7 +122,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
   }
 
-  FutureOr<void> _createDir(CreateDirEvent event, Emitter<FilePageState>? emit) async {
+  FutureOr<void> _createDir(
+      CreateDirEvent event, Emitter<FilePageState>? emit) async {
     final name = event.name;
 
     final paths = _getWholePathList(fileName: name);
@@ -125,7 +131,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final createDirEntity = await DioManager().doPost(
         api: NetworkConfig.apiCreateDir,
         data: {"paths": paths},
-        transformer: (Map<String, dynamic> json) => CreateDirEntity.fromJson(json),
+        transformer: (Map<String, dynamic> json) =>
+            CreateDirEntity.fromJson(json),
         context: _context);
 
     if (createDirEntity == null) return;
@@ -135,7 +142,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
   }
 
-  FutureOr<void> _deleteFile(DeleteFileEvent event, Emitter<FilePageState> emit) async {
+  FutureOr<void> _deleteFile(
+      DeleteFileEvent event, Emitter<FilePageState> emit) async {
     final name = event.name;
 
     final paths = _getWholePathList(fileName: name);
@@ -153,7 +161,10 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _refresh(Emitter<FilePageState> emit) async {
     final listFile = await DioManager()
-        .doPost(api: NetworkConfig.apiListFile, transformer: (json) => ListFileEntity.fromJson(json), context: _context)
+        .doPost(
+            api: NetworkConfig.apiListFile,
+            transformer: (json) => ListFileEntity.fromJson(json),
+            context: _context)
         .then((value) => value?.result);
 
     if (listFile == null) return;
@@ -165,12 +176,14 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     for (int deep = 0; deep < _currentPaths.length; deep++) {
       var replace = false;
       for (var element in files) {
-        print("_refresh 第${deep}层->${_currentPaths[deep].name}  对比 ${element.name}");
+        print(
+            "_refresh 第${deep}层->${_currentPaths[deep].name}  对比 ${element.name}");
 
         final path = _currentPaths[deep];
 
         if (element.name == path.name) {
-          _currentPaths.replaceRange(deep, deep + 1, [element..position = path.position]);
+          _currentPaths.replaceRange(
+              deep, deep + 1, [element..position = path.position]);
 
           // print("_refresh 替换->${_paths[deep].name}");
 
@@ -229,7 +242,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     void assemblePreviewImgUrl(ListFileResult path) {
       final previewImg = path.previewImg;
       if (previewImg != null) {
-        path.previewImgUrl = "${NetworkConfig.urlBase}${path.previewImg}&token=${sp.getString(SpConfig.keyToken)}";
+        path.previewImgUrl =
+            "${NetworkConfig.urlBase}${path.previewImg}&token=${sp.getString(SpConfig.keyToken)}";
         debugPrint("previewImgUrl -> ${path.previewImgUrl}");
       }
 
@@ -247,7 +261,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   }
 
   void _fileListScroll(FileListScrollEvent event, Emitter<FilePageState> emit) {
-    debugPrint("_fileListScroll _currentFile->${_currentFile?.name} position->${event.position}");
+    debugPrint(
+        "_fileListScroll _currentFile->${_currentFile?.name} position->${event.position}");
     _currentFile?.position = event.position;
     state.fileListPosition = event.position;
   }
@@ -257,7 +272,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     return paths.isNotEmpty ? paths.last : null;
   }
 
-  Future<void> _refreshData(RefreshDataEvent event, Emitter<FilePageState> emit) async {
+  Future<void> _refreshData(
+      RefreshDataEvent event, Emitter<FilePageState> emit) async {
     await _refresh(emit);
   }
 
@@ -285,11 +301,14 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     emit(state.clone()..fileListPosition = _currentFile?.position ?? 0);
   }
 
-  FutureOr<void> _downloadFile(DownloadFileEvent event, Emitter<FilePageState> emit) async {
-    _platformAdapter.webOpen(url: await _getDownloadUrl(state.children[event.index].name));
+  FutureOr<void> _downloadFile(
+      DownloadFileEvent event, Emitter<FilePageState> emit) async {
+    _platformAdapter.webOpen(
+        url: await _getDownloadUrl(state.children[event.index].name));
   }
 
-  Future<void> _uploadFile(UploadFileEvent uploadFileEvent, Emitter<FilePageState> emit) async {
+  Future<void> _uploadFile(
+      UploadFileEvent uploadFileEvent, Emitter<FilePageState> emit) async {
     await _platformAdapter.uploadFile(
         isDir: uploadFileEvent.dir,
         getFileParentPath: ({String? dir}) async {
@@ -308,13 +327,15 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     final filePathsJson = json.encode(_getWholePathList(fileName: fileName));
 
-    final filePaths = const Base64Encoder.urlSafe().convert(utf8.encode(filePathsJson));
+    final filePaths =
+        const Base64Encoder.urlSafe().convert(utf8.encode(filePathsJson));
 
     return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=$filePaths";
   }
 
   //获取完整路径数组
-  List<String> _getWholePathList({List<ListFileResult>? paths, String? fileName}) {
+  List<String> _getWholePathList(
+      {List<ListFileResult>? paths, String? fileName}) {
     final pathList = (paths ?? state.paths).map((e) => e.name).toList();
 
     if (fileName != null) pathList.add(fileName);
@@ -324,11 +345,13 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   //获取完整路径字符串，逗号分隔
   String _getWholePathStr({String? fileName}) {
-    final sb = StringBuffer()..writeAll(_getWholePathList(fileName: fileName), ",");
+    final sb = StringBuffer()
+      ..writeAll(_getWholePathList(fileName: fileName), ",");
     return sb.toString();
   }
 
-  Future<void> _playVideo(PlayVideoEvent event, Emitter<FilePageState> emit) async {
+  Future<void> _playVideo(
+      PlayVideoEvent event, Emitter<FilePageState> emit) async {
     final videoUrl = await _getDownloadUrl(state.children[event.index].name);
     // js.context.callMethod(
     //     'openVideoUrlWithSysProgram', [videoUrl]);
@@ -353,28 +376,33 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
   }
 
-  void _showProgressDialogSuccess(ShowProgressDialogSuccessEvent event, Emitter<FilePageState> emit) =>
+  void _showProgressDialogSuccess(
+          ShowProgressDialogSuccessEvent event, Emitter<FilePageState> emit) =>
       _progressDialogCompleter?.complete();
 
-  void _showWaitServerDialogSuccess(ShowWaitServerDialogSuccessEvent event, Emitter<FilePageState> emit) =>
+  void _showWaitServerDialogSuccess(ShowWaitServerDialogSuccessEvent event,
+          Emitter<FilePageState> emit) =>
       _waitServerDialogCompleter?.complete();
 
   void _switchView(SwitchViewEvent event, Emitter<FilePageState> emit) {
     emit(state.clone()..isGridView = !state.isGridView);
   }
 
-  FutureOr<void> _updateTasks(UpdateTasksEvent event, Emitter<FilePageState> emit) {
+  FutureOr<void> _updateTasks(
+      UpdateTasksEvent event, Emitter<FilePageState> emit) {
     emit(state.clone()..updateTasks = event.updateTasks);
   }
 
-  Future<FutureOr<void>> _rename(RenameEvent event, Emitter<FilePageState> emit) async {
+  Future<FutureOr<void>> _rename(
+      RenameEvent event, Emitter<FilePageState> emit) async {
     final paths = _getWholePathList(fileName: state.children[event.index].name);
     final newPaths = _getWholePathList(fileName: event.newName);
 
     final result = await DioManager().doPost(
         api: NetworkConfig.apiRenameFile,
         data: {"paths": paths, "newPaths": newPaths},
-        transformer: (Map<String, dynamic> json) => RenameFileEntity.fromJson(json),
+        transformer: (Map<String, dynamic> json) =>
+            RenameFileEntity.fromJson(json),
         context: _context);
 
     if (result != null) {
@@ -384,7 +412,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     add(InitEvent());
   }
 
-  FutureOr<void> _showDirChooseDialog(ShowDirChooseDialogEvent event, Emitter<FilePageState> emit) {
+  FutureOr<void> _showDirChooseDialog(
+      ShowDirChooseDialogEvent event, Emitter<FilePageState> emit) {
     final paths = state.paths;
 
     if (paths.isEmpty) return null;
@@ -392,15 +421,18 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     emit(state.clone()..dirChoosePaths = [paths.first]);
   }
 
-  Future<FutureOr<void>> _moveFileEvent(MoveFileEvent event, Emitter<FilePageState> emit) async {
+  Future<FutureOr<void>> _moveFileEvent(
+      MoveFileEvent event, Emitter<FilePageState> emit) async {
     var fileName = state.children[event.index].name;
     final paths = _getWholePathList(fileName: fileName);
-    final newPaths = _getWholePathList(paths: state.dirChoosePaths, fileName: fileName);
+    final newPaths =
+        _getWholePathList(paths: state.dirChoosePaths, fileName: fileName);
 
     final result = await DioManager().doPost(
         api: NetworkConfig.apiRenameFile,
         data: {"paths": paths, "newPaths": newPaths},
-        transformer: (Map<String, dynamic> json) => RenameFileEntity.fromJson(json),
+        transformer: (Map<String, dynamic> json) =>
+            RenameFileEntity.fromJson(json),
         context: _context);
 
     if (result != null) {
@@ -410,7 +442,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     add(InitEvent());
   }
 
-  FutureOr<void> _dirChooseForward(DirChooseForwardEvent event, Emitter<FilePageState> emit) {
+  FutureOr<void> _dirChooseForward(
+      DirChooseForwardEvent event, Emitter<FilePageState> emit) {
     final paths = state.dirChoosePaths;
 
     if (paths.isEmpty) return null;
@@ -426,7 +459,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     emit(state.clone()..dirChoosePaths = newPath);
   }
 
-  FutureOr<void> _dirChooseBackward(DirChooseBackwardEvent event, Emitter<FilePageState> emit) {
+  FutureOr<void> _dirChooseBackward(
+      DirChooseBackwardEvent event, Emitter<FilePageState> emit) {
     final paths = state.dirChoosePaths;
     if (paths.length > 1) {
       emit(state.clone()..dirChoosePaths = (paths.toList()..removeLast()));

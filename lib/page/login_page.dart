@@ -7,6 +7,8 @@ import 'package:cloud_driver/model/event/event.dart';
 import 'package:cloud_driver/model/global.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/entity/base_entity.dart';
@@ -18,7 +20,7 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body;
-    if(kIsWeb) {
+    if (kIsWeb) {
       body = _buildWebPage(context);
     } else {
       body = _buildMobilePage(context);
@@ -43,7 +45,6 @@ class LoginPage extends StatelessWidget {
     if (refreshToken && username != null && username.isNotEmpty == true) {
       unameController.text = username;
     }
-
     final title;
 
     if (refreshToken) {
@@ -54,10 +55,60 @@ class LoginPage extends StatelessWidget {
 
     return Stack(
       children: [
-        Image.asset("graphics/ic_login.svg"),
-        FractionallySizedBox(
-          widthFactor: 0.8,
-          child: Container(),
+        SvgPicture.asset("graphics/ic_login.svg"),
+        Center(
+          child: FractionallySizedBox(
+            widthFactor: 0.9,
+            child: Card(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 50.w),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    SizedBox(
+                      height: 60.w,
+                    ),
+                    TextField(
+                        controller: unameController,
+                        decoration: const InputDecoration(
+                          labelText: "用户名",
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        )),
+                    SizedBox(
+                      height: 40.w,
+                    ),
+                    TextField(
+                        controller: pswController,
+                        decoration: const InputDecoration(
+                          labelText: "密码",
+                          prefixIcon: Icon(Icons.password),
+                          border: OutlineInputBorder(),
+                        )),
+                    SizedBox(
+                      height: 60.w,
+                    ),
+                    Container(
+                        constraints: const BoxConstraints.tightFor(
+                            width: double.infinity),
+                        child: FilledButton.icon(
+                          onPressed: () => _onLoginPress(refreshToken, context,
+                              unameController.text, pswController.text),
+                          icon: const Icon(Icons.login),
+                          label: const Text("登录"),
+                        ))
+                  ],
+                ),
+              ),
+            ),
+          ),
         )
       ],
     );
@@ -96,7 +147,7 @@ class LoginPage extends StatelessWidget {
         children: [
           Center(
             child: Image.network(
-              "graphics/ic_login.svg",
+              "assets/graphics/ic_login.svg",
               width: bgWidth,
               fit: BoxFit.fitWidth,
             ),
@@ -106,8 +157,8 @@ class LoginPage extends StatelessWidget {
             child: SingleChildScrollView(
               child: Card(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 30),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                   width: loginFrameWidth,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

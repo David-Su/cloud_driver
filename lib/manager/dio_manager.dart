@@ -10,22 +10,27 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-typedef DefaultHandle<T> = BaseEntity<T>? Function(BuildContext context, BaseEntity<T> baseEntity);
-typedef Handler<T> = BaseEntity<T>? Function(BaseEntity<T> baseEntity, DefaultHandle<T> defaultHandler);
+typedef DefaultHandle<T> = BaseEntity<T>? Function(
+    BuildContext context, BaseEntity<T> baseEntity);
+typedef Handler<T> = BaseEntity<T>? Function(
+    BaseEntity<T> baseEntity, DefaultHandle<T> defaultHandler);
 
 class DioManager {
   static final DioManager _instance = DioManager._internal();
 
   factory DioManager() => _instance;
 
-  late final Dio _defaultDio;
+  late final Dio defaultDio;
 
   final List<Completer<void>> _jobs = [];
 
   DioManager._internal() {
-    _defaultDio = Dio(BaseOptions(baseUrl: NetworkConfig.urlBase, connectTimeout: NetworkConfig.timeoutReceive));
-    _defaultDio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
-    _defaultDio.interceptors.add(MyInterceptor());
+    defaultDio = Dio(BaseOptions(
+        baseUrl: NetworkConfig.urlBase,
+        connectTimeout: NetworkConfig.timeoutReceive));
+    defaultDio.interceptors
+        .add(LogInterceptor(responseBody: true, requestBody: true));
+    defaultDio.interceptors.add(MyInterceptor());
   }
 
   Future<BaseEntity<T>?> doPost<T>(
@@ -50,20 +55,24 @@ class DioManager {
                   padding: EdgeInsets.all(15),
                   child: CircularProgressIndicator(),
                 ),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8))),
           );
         });
 
     BaseEntity<T>? result;
 
     try {
-      final value = await _defaultDio.post(api, data: data, onSendProgress: onSendProgress);
+      final value = await defaultDio.post(api,
+          data: data, onSendProgress: onSendProgress);
 
       final dialogContext = await dialogCompleter.future;
 
       Navigator.of(dialogContext).pop();
 
-      BaseEntity<T> baseEntity = transformer.call(json.decode(value.toString()));
+      BaseEntity<T> baseEntity =
+          transformer.call(json.decode(value.toString()));
 
       if (interceptor != null) {
         result = interceptor.call(baseEntity, defaultHandle);
@@ -84,7 +93,8 @@ class DioManager {
     return result;
   }
 
-  BaseEntity<T>? defaultHandle<T>(BuildContext context, BaseEntity<T> baseEntity) {
+  BaseEntity<T>? defaultHandle<T>(
+      BuildContext context, BaseEntity<T> baseEntity) {
     if (baseEntity.code != NetworkConfig.codeOk) {
       ToastUtil.showDefaultToast(baseEntity.message);
     }
@@ -111,7 +121,8 @@ class DioManager {
 
 class MyInterceptor extends Interceptor {
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  void onRequest(
+      RequestOptions options, RequestInterceptorHandler handler) async {
     final sp = await SharedPreferences.getInstance();
     final token = sp.getString(SpConfig.keyToken);
     options.queryParameters.addAll({"token": token});
