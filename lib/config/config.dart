@@ -42,7 +42,7 @@ class NetworkConfig {
       case ChannelConfig.channelInternetProxy:
         return "fqym.top:8080";
       case ChannelConfig.channelIntranet:
-        return "192.168.1.205:8080";
+        return "192.168.0.250:8080";
     }
     // return "192.168.20.149:8080";
     // return "127.0.0.1:8080";

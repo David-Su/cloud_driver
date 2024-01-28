@@ -85,6 +85,17 @@ class DioManager {
       Navigator.of(dialogContext).pop();
 
       result = null;
+
+      if (err is DioError) {
+        switch (err.type) {
+          case DioErrorType.connectTimeout:
+            ToastUtil.showDefaultToast("连接超时，请重试");
+            break;
+          default:
+            ToastUtil.showDefaultToast(err.message);
+            break;
+        }
+      }
     }
 
     job.complete();

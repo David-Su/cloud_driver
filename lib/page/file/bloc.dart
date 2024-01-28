@@ -68,7 +68,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final channel = WebSocketChannel.connect(Uri.parse(
         "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
 
-    channel.stream.listen((event) {
+    final stream = channel.stream;
+
+    stream.listen((event) {
       final Map<String, dynamic> eventJson = json.decode(event.toString());
 
       final dataType = eventJson["dataType"] as int;
@@ -96,6 +98,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
             add(UpdateTasksEvent(List.of(state.updateTasks)));
           }
       }
+    }, onError: (error) {
+      debugPrint('ws error $error');
+      ToastUtil.showDefaultToast("与服务器断开连接，请重新登录");
     });
 
     channel.sink.add("hello from flutter");
