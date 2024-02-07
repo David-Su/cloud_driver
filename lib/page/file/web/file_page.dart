@@ -7,15 +7,17 @@ import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/route/PopupWindowRoute.dart';
 import 'package:cloud_driver/util/util.dart';
+import 'package:cloud_driver/widget/ExpandableFab.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mime/mime.dart';
 
-import 'bloc.dart';
-import 'event.dart';
-import 'state.dart';
+import 'package:cloud_driver/page/file/base_page_state.dart';
+import 'package:cloud_driver/page/file/file_page_bloc.dart';
+import 'package:cloud_driver/page/file/file_page_event.dart';
+import 'package:cloud_driver/page/file/file_page_state.dart';
 
 class FilePage extends StatefulWidget {
   const FilePage({Key? key}) : super(key: key);
@@ -24,27 +26,23 @@ class FilePage extends StatefulWidget {
   State<StatefulWidget> createState() => _FilePageState();
 }
 
-class _FilePageState extends State<FilePage> {
+class _FilePageState extends BasePageState {
   final _scrollController = ScrollController();
   final _taskButtonKey = GlobalKey();
   final _uploadButtonKey = GlobalKey();
   final _platformAdapter = PlatformAdapter();
-  late final FilePageBloc _bloc;
 
   @override
   void initState() {
     super.initState();
-
-    _bloc = FilePageBloc(context);
-
     // 屏蔽浏览器默认的右键点击事件
     _platformAdapter.webBlocRightClick();
 
     _scrollController.addListener(() {
-      _bloc.add(FileListScrollEvent(_scrollController.position.pixels));
+      bloc.add(FileListScrollEvent(_scrollController.position.pixels));
     });
 
-    _bloc.add(InitEvent());
+    bloc.add(InitEvent());
   }
 
   @override
@@ -52,7 +50,7 @@ class _FilePageState extends State<FilePage> {
     final uploadMenuController = MenuController();
 
     return BlocProvider(
-      create: (_) => _bloc,
+      create: (_) => bloc,
       child: MultiBlocListener(
         listeners: [
           BlocListener<FilePageBloc, FilePageState>(
@@ -77,10 +75,10 @@ class _FilePageState extends State<FilePage> {
                 showDialog(
                     context: context,
                     builder: (BuildContext dialogContext) {
-                      _bloc.add(ShowWaitServerDialogSuccessEvent());
+                      bloc.add(ShowWaitServerDialogSuccessEvent());
                       debugPrint("弹出${dialogContext.hashCode}");
                       return BlocProvider.value(
-                        value: _bloc,
+                        value: bloc,
                         child: Material(
                           child: Center(
                             child: Container(
@@ -124,9 +122,9 @@ class _FilePageState extends State<FilePage> {
                     barrierDismissible: false,
                     context: context,
                     builder: (BuildContext dialogContext) {
-                      _bloc.add(ShowProgressDialogSuccessEvent());
+                      bloc.add(ShowProgressDialogSuccessEvent());
                       return BlocProvider.value(
-                        value: _bloc,
+                        value: bloc,
                         child: Material(
                           child: Center(
                             child: Container(
@@ -230,8 +228,7 @@ class _FilePageState extends State<FilePage> {
                               style: ButtonStyle(
                                   padding: MaterialStateProperty.all(
                                       EdgeInsets.zero)),
-                              onPressed: () =>
-                                  _bloc.add(UploadFileEvent(false)),
+                              onPressed: () => bloc.add(UploadFileEvent(false)),
                               child: Builder(builder: (BuildContext context) {
                                 final box = _uploadButtonKey.currentContext
                                     ?.findRenderObject() as RenderBox;
@@ -246,7 +243,7 @@ class _FilePageState extends State<FilePage> {
                               style: ButtonStyle(
                                   padding: MaterialStateProperty.all(
                                       EdgeInsets.zero)),
-                              onPressed: () => _bloc.add(UploadFileEvent(true)),
+                              onPressed: () => bloc.add(UploadFileEvent(true)),
                               child: Builder(builder: (BuildContext context) {
                                 final box = _uploadButtonKey.currentContext
                                     ?.findRenderObject() as RenderBox;
@@ -263,40 +260,7 @@ class _FilePageState extends State<FilePage> {
                           width: 10,
                         ),
                         ElevatedButton.icon(
-                            onPressed: () async {
-                              final controller = TextEditingController();
-
-                              final confirm = await showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (BuildContext context) =>
-                                      AlertDialog(
-                                        title: const Text("请输入文件夹名字"),
-                                        content: TextField(
-                                          controller: controller,
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(true),
-                                              child: const Text("确定")),
-                                          TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(false),
-                                              child: const Text("取消"))
-                                        ],
-                                      ));
-
-                              final name = controller.text;
-
-                              if (!confirm || name.isEmpty) {
-                                return;
-                              }
-
-                              _bloc.add(CreateDirEvent(name));
-                            },
+                            onPressed: onPressCreateDir,
                             style: _getButtonStyle(),
                             icon: const Icon(Icons.create_new_folder),
                             label: const Text("新建文件夹")),
@@ -304,7 +268,7 @@ class _FilePageState extends State<FilePage> {
                         IconButton(
                             key: _taskButtonKey,
                             onPressed: () {
-                              if (_bloc.state.updateTasks.isEmpty) {
+                              if (bloc.state.updateTasks.isEmpty) {
                                 ToastUtil.showDefaultToast("没有任务");
                                 return;
                               }
@@ -328,7 +292,7 @@ class _FilePageState extends State<FilePage> {
                                             routeContext) =>
                                         PopupWindow(
                                           BlocProvider.value(
-                                            value: _bloc,
+                                            value: bloc,
                                             child: BlocBuilder<FilePageBloc,
                                                     FilePageState>(
                                                 buildWhen:
@@ -384,7 +348,7 @@ class _FilePageState extends State<FilePage> {
                           builder: (BuildContext context,
                                   FilePageState state) =>
                               IconButton(
-                                  onPressed: () => _bloc.add(SwitchViewEvent()),
+                                  onPressed: () => bloc.add(SwitchViewEvent()),
                                   icon: Icon(
                                     state.isGridView
                                         ? Icons.list
@@ -393,7 +357,7 @@ class _FilePageState extends State<FilePage> {
                                   )),
                         ),
                         IconButton(
-                            onPressed: () => _bloc.add(RefreshDataEvent()),
+                            onPressed: () => bloc.add(RefreshDataEvent(null)),
                             icon: const Icon(
                               Icons.refresh,
                               color: Colors.black45,
@@ -415,14 +379,21 @@ class _FilePageState extends State<FilePage> {
                 ),
                 _getDivider(),
                 Expanded(
-                  child: _buildChildrenList(),
+                  child: RefreshIndicator(
+                    child: _buildChildrenList(),
+                    onRefresh: () async {
+                      final completer = Completer<void>();
+                      bloc.add(RefreshDataEvent(completer));
+                      await completer.future;
+                    },
+                  ),
                 ),
               ],
             ),
           ),
           canPop: false,
           onPopInvoked: (didPop) async {
-            _bloc.add(BackEvent());
+            bloc.add(BackEvent());
           },
         ),
       ),
@@ -458,110 +429,65 @@ class _FilePageState extends State<FilePage> {
       );
 
   Widget _buildGridFileWidget(List<ListFileResult> children) {
-    return (kIsWeb)
-        ? LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-            //假设窗口最大时横向为15个item
-            final oneItemWidth =
-                (_platformAdapter.webGetScreenSize()?.width ?? 0) / 15;
+    return LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+      //假设窗口最大时横向为15个item
+      final oneItemWidth =
+          (_platformAdapter.webGetScreenSize()?.width ?? 0) / 15;
 
-            debugPrint("oneItemWidth -> ${oneItemWidth}");
+      debugPrint("oneItemWidth -> ${oneItemWidth}");
 
-            final crossAxisCount = max(constraints.maxWidth ~/ oneItemWidth, 1);
+      final crossAxisCount = max(constraints.maxWidth ~/ oneItemWidth, 1);
 
-            return GridView.builder(
-                controller: _scrollController,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    childAspectRatio: 1 / 1.5, crossAxisCount: crossAxisCount),
-                itemCount: children.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final file = children[index];
-                  final previewImg = file.previewImg;
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onSecondaryTapUp: (TapUpDetails details) async =>
-                        await _onSecondaryTapUp(file, context, details, index),
-                    onTap: () => _onFileItemTap(file, index),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Column(
-                        children: [
-                          FractionallySizedBox(
-                            widthFactor: 1,
-                            child: AspectRatio(
-                                aspectRatio: 1 / 1,
-                                child: previewImg != null
-                                    ? Image.network(
-                                        "${file.previewImgUrl}",
-                                        fit: BoxFit.contain,
-                                      )
-                                    : Icon(
-                                        file.isDir
-                                            ? Icons.folder
-                                            : Icons.description_outlined,
-                                        color: file.isDir
-                                            ? Colors.orangeAccent
-                                            : Colors.grey,
-                                      )),
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          Expanded(
-                              child: AutoSizeText(
-                            file.name,
-                          )),
-                        ],
-                      ),
+      return GridView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          controller: _scrollController,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              childAspectRatio: 1 / 1.5, crossAxisCount: crossAxisCount),
+          itemCount: children.length,
+          itemBuilder: (BuildContext context, int index) {
+            final file = children[index];
+            final previewImg = file.previewImg;
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapUp: (TapUpDetails details) async =>
+                  await _onSecondaryTapUp(file, context, details, index),
+              onTap: () => _onFileItemTap(file, index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(
+                  children: [
+                    FractionallySizedBox(
+                      widthFactor: 1,
+                      child: AspectRatio(
+                          aspectRatio: 1 / 1,
+                          child: previewImg != null
+                              ? Image.network(
+                                  "${file.previewImgUrl}",
+                                  fit: BoxFit.cover,
+                                )
+                              : Icon(
+                                  file.isDir
+                                      ? Icons.folder
+                                      : Icons.description_outlined,
+                                  color: file.isDir
+                                      ? Colors.orangeAccent
+                                      : Colors.grey,
+                                )),
                     ),
-                  );
-                });
-          })
-        : GridView.builder(
-            itemCount: children.length,
-            controller: _scrollController,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                childAspectRatio: 1 / 1.5, crossAxisCount: 3),
-            itemBuilder: (BuildContext context, int index) {
-              final file = children[index];
-              final previewImg = file.previewImg;
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _onFileItemTap(file, index),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  child: Column(
-                    children: [
-                      FractionallySizedBox(
-                        widthFactor: 1,
-                        child: AspectRatio(
-                            aspectRatio: 1 / 1,
-                            child: previewImg != null
-                                ? Image.network(
-                                    "${file.previewImgUrl}",
-                                    fit: BoxFit.contain,
-                                  )
-                                : Icon(
-                                    file.isDir
-                                        ? Icons.folder
-                                        : Icons.description_outlined,
-                                    color: file.isDir
-                                        ? Colors.orangeAccent
-                                        : Colors.grey,
-                                  )),
-                      ),
-                      SizedBox(
-                        height: 10.w,
-                      ),
-                      Expanded(
-                          child: AutoSizeText(
-                        file.name,
-                      )),
-                    ],
-                  ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Expanded(
+                        child: AutoSizeText(
+                      file.name,
+                    )),
+                  ],
                 ),
-              );
-            });
+              ),
+            );
+          });
+    });
   }
 
   ///纵向的文件列表
@@ -583,6 +509,7 @@ class _FilePageState extends State<FilePage> {
     }
 
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       controller: scrollController,
       shrinkWrap: true,
       separatorBuilder: (BuildContext context, int index) => _getDivider(),
@@ -662,7 +589,7 @@ class _FilePageState extends State<FilePage> {
   ///文件的点击事件
   void _onFileItemTap(ListFileResult file, int index) {
     if (file.isDir) {
-      _bloc.add(ForwardEvent(index));
+      bloc.add(ForwardEvent(index));
     }
   }
 
@@ -727,14 +654,14 @@ class _FilePageState extends State<FilePage> {
                 ));
 
         if (delete) {
-          _bloc.add(DeleteFileEvent(file.name));
+          bloc.add(DeleteFileEvent([file.name]));
         }
         break;
       case idDownload:
-        _bloc.add(DownloadFileEvent(index));
+        bloc.add(DownloadFileEvent(index));
         break;
       case idPlayVideo:
-        _bloc.add(PlayVideoEvent(PlayVideoEvent.typePotPlayer, index));
+        bloc.add(PlayVideoEvent(PlayVideoEvent.typePotPlayer, index));
         break;
       case idRename:
         final controller = TextEditingController(text: file.name);
@@ -769,17 +696,17 @@ class _FilePageState extends State<FilePage> {
           return;
         }
 
-        _bloc.add(RenameEvent(index, newName));
+        bloc.add(RenameEvent(index, newName));
 
         break;
       case idMove:
         //通知bloc加载目录数据
-        _bloc.add(ShowDirChooseDialogEvent());
+        bloc.add(ShowDirChooseDialogEvent());
         showModalBottomSheet<void>(
             context: context,
             isScrollControlled: true,
             builder: (BuildContext context) => BlocProvider.value(
-                value: _bloc,
+                value: bloc,
                 child: SizedBox(
                   height: MediaQuery.of(context).size.height * 0.8,
                   child: Column(
@@ -809,7 +736,7 @@ class _FilePageState extends State<FilePage> {
                                         child: BackButton(
                                           color: Colors.black45,
                                           onPressed: () {
-                                            _bloc.add(DirChooseBackwardEvent());
+                                            bloc.add(DirChooseBackwardEvent());
                                           },
                                         ))),
                           ),
@@ -857,7 +784,7 @@ class _FilePageState extends State<FilePage> {
                                       dirOnly: true,
                                       onFileItemTap:
                                           (ListFileResult file, int index) =>
-                                              _bloc.add(
+                                              bloc.add(
                                                   DirChooseForwardEvent(index)))
                                   : Container();
                             }),
@@ -875,7 +802,7 @@ class _FilePageState extends State<FilePage> {
                               ),
                               onPressed: () {
                                 Navigator.of(context).pop();
-                                _bloc.add(MoveFileEvent(index));
+                                bloc.add(MoveFileEvent(index));
                               },
                             )
                           ],
@@ -922,6 +849,6 @@ class _FilePageState extends State<FilePage> {
   }
 
 // Widget _buildDirChooseWidget() {
-//   _bloc.state.children
+//   bloc.state.children
 // }
 }

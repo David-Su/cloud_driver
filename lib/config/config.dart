@@ -20,7 +20,7 @@ class NetworkConfig {
   static const String apiUploadFile = "/uploadfile";
   static const String apiRenameFile = "/renamefile";
   static const String apiWsUploadTasks = "/websocket/uploadtasks";
-  static const int timeoutConnect = 2000;
+  static const int timeoutConnect = 5000;
   static const int timeoutReceive = 5000;
 
   static const String codeOk = "0000";
@@ -44,7 +44,7 @@ class NetworkConfig {
       case ChannelConfig.channelIntranet:
         return "192.168.0.250:8080";
     }
-    return "192.168.0.250:8080";
+    // return "192.168.0.250:8080";
     // return "127.0.0.1:8080";
     return "fqym.top:8080";
   }

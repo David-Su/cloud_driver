@@ -27,7 +27,7 @@ class DioManager {
   DioManager._internal() {
     defaultDio = Dio(BaseOptions(
         baseUrl: NetworkConfig.urlBase,
-        connectTimeout: NetworkConfig.timeoutReceive));
+        connectTimeout: NetworkConfig.timeoutConnect));
     defaultDio.interceptors
         .add(LogInterceptor(responseBody: true, requestBody: true));
     defaultDio.interceptors.add(MyInterceptor());
@@ -39,27 +39,37 @@ class DioManager {
       required BaseEntity<T> Function(Map<String, dynamic> json) transformer,
       required BuildContext context,
       ProgressCallback? onSendProgress,
-      Handler<T>? interceptor}) async {
-    final dialogCompleter = Completer<BuildContext>();
+      Handler<T>? interceptor,
+      bool isShowDialog = true}) async {
+    final Completer<BuildContext>? dialogCompleter;
     final job = Completer<void>();
 
     _jobs.add(job);
 
-    showDialog(
-        context: MyApp.navigatorKey.currentContext!,
-        builder: (BuildContext dialogContext) {
-          dialogCompleter.complete(dialogContext);
-          return Center(
-            child: Container(
-                child: const Padding(
-                  padding: EdgeInsets.all(15),
-                  child: CircularProgressIndicator(),
-                ),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8))),
-          );
-        });
+    if (isShowDialog) {
+      final _dialogCompleter = Completer<BuildContext>();
+      dialogCompleter = _dialogCompleter;
+      showDialog(
+          context: MyApp.navigatorKey.currentContext!,
+          builder: (BuildContext dialogContext) {
+            //调用这次showDialog之前如果有弹窗的话,builder会走两次,未知原因
+            if (!_dialogCompleter.isCompleted) {
+              _dialogCompleter.complete(dialogContext);
+            }
+            return Center(
+              child: Container(
+                  child: const Padding(
+                    padding: EdgeInsets.all(15),
+                    child: CircularProgressIndicator(),
+                  ),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8))),
+            );
+          });
+    } else {
+      dialogCompleter = null;
+    }
 
     BaseEntity<T>? result;
 
@@ -67,9 +77,7 @@ class DioManager {
       final value = await defaultDio.post(api,
           data: data, onSendProgress: onSendProgress);
 
-      final dialogContext = await dialogCompleter.future;
-
-      Navigator.of(dialogContext).pop();
+      await dialogCompleter?.future.then((value) => Navigator.of(value).pop());
 
       BaseEntity<T> baseEntity =
           transformer.call(json.decode(value.toString()));
@@ -80,9 +88,8 @@ class DioManager {
         result = defaultHandle(context, baseEntity);
       }
     } catch (err) {
-      final dialogContext = await dialogCompleter.future;
-
-      Navigator.of(dialogContext).pop();
+      debugPrint(err.toString());
+      await dialogCompleter?.future.then((value) => Navigator.of(value).pop());
 
       result = null;
 

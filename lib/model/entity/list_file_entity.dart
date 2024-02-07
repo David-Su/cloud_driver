@@ -34,6 +34,10 @@ class ListFileResult {
   @JsonKey(ignore: true)
   String? previewImgUrl;
 
+  //选择状态
+  @JsonKey(ignore: true)
+  bool isSelected = false;
+
   ListFileResult(
       this.children, this.isDir, this.name, this.size, this.previewImg);
 

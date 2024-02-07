@@ -11,14 +11,14 @@ import 'package:cloud_driver/util/util.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-
+import 'package:collection/collection.dart';
 import '../../config/config.dart';
 import '../../manager/dio_manager.dart';
 import '../../model/entity/create_dir_entity.dart';
 import '../../model/entity/delete_file_entity.dart';
 import '../../model/entity/list_file_entity.dart';
-import 'event.dart';
-import 'state.dart';
+import 'file_page_event.dart';
+import 'file_page_state.dart';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   final BuildContext _context;
@@ -48,6 +48,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     on<ShowDirChooseDialogEvent>(_showDirChooseDialog);
     on<MoveFileEvent>(_moveFileEvent);
     on<DirChooseBackwardEvent>(_dirChooseBackward);
+    on<SelectEvent>(_selectEvent);
 
     //WebSocket监听服务端消息
     _wsConn();
@@ -120,10 +121,24 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   }
 
   FutureOr<void> _back(BackEvent event, Emitter<FilePageState> emit) {
-    final paths = state.paths.toList();
-    if (paths.length > 1) {
-      paths.removeAt(paths.length - 1);
-      _refreshList(paths, emit);
+    final hadSelected = state.children
+            .firstWhereOrNull((element) => element.isSelected == true) !=
+        null;
+
+    if (hadSelected) {
+      final newChildren = state.children.toList()
+        ..forEach((element) {
+          element.isSelected = false;
+        });
+      emit(state.clone()
+        ..children = newChildren
+        ..selectMode = false);
+    } else {
+      final paths = state.paths.toList();
+      if (paths.length > 1) {
+        paths.removeAt(paths.length - 1);
+        _refreshList(paths, emit);
+      }
     }
   }
 
@@ -149,27 +164,32 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   FutureOr<void> _deleteFile(
       DeleteFileEvent event, Emitter<FilePageState> emit) async {
-    final name = event.name;
+    final futures = event.names.map((name) async {
+      final paths = _getWholePathList(fileName: name);
+      return await DioManager().doPost(
+          api: NetworkConfig.apiDeleteFile,
+          data: {"paths": paths},
+          transformer: (json) => DeleteFileEntity.fromJson(json),
+          context: _context);
+    });
 
-    final paths = _getWholePathList(fileName: name);
+    final results = await Future.wait(futures);
 
-    final deleteFileResult = await DioManager().doPost(
-        api: NetworkConfig.apiDeleteFile,
-        data: {"paths": paths},
-        transformer: (json) => DeleteFileEntity.fromJson(json),
-        context: _context);
-
-    if (deleteFileResult == null) return;
+    if (results.every((element) => element == null)) {
+      return;
+    }
 
     await _refresh(emit);
   }
 
-  Future<void> _refresh(Emitter<FilePageState> emit) async {
+  Future<void> _refresh(Emitter<FilePageState> emit,
+      {bool isShowDialog = true}) async {
     final listFile = await DioManager()
         .doPost(
             api: NetworkConfig.apiListFile,
             transformer: (json) => ListFileEntity.fromJson(json),
-            context: _context)
+            context: _context,
+            isShowDialog: isShowDialog)
         .then((value) => value?.result);
 
     if (listFile == null) return;
@@ -279,7 +299,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _refreshData(
       RefreshDataEvent event, Emitter<FilePageState> emit) async {
-    await _refresh(emit);
+    await _refresh(emit, isShowDialog: event.completer == null);
+    event.completer?.complete();
   }
 
   void _forward(ForwardEvent event, Emitter<FilePageState> emit) {
@@ -299,7 +320,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     emit(state.clone()
       ..paths = paths
-      ..children = children);
+      ..children = children
+      ..selectMode = false);
 
     debugPrint("_currentFile->${_currentFile?.name}");
 
@@ -470,5 +492,14 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     if (paths.length > 1) {
       emit(state.clone()..dirChoosePaths = (paths.toList()..removeLast()));
     }
+  }
+
+  FutureOr<void> _selectEvent(SelectEvent event, Emitter<FilePageState> emit) {
+    final newChildren = state.children.toList();
+    final child = newChildren[event.index];
+    child.isSelected = !child.isSelected;
+    emit(state.clone()
+      ..children = newChildren
+      ..selectMode = newChildren.any((element) => element.isSelected));
   }
 }

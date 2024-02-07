@@ -31,7 +31,10 @@ class FilePageState {
   bool isGridView = true;
 
   //进行中的任务
-  List<UpdateTaskEntity> updateTasks= [];
+  List<UpdateTaskEntity> updateTasks = [];
+
+  //选择文件模式
+  bool selectMode = false;
 
   FilePageState clone() {
     return FilePageState()
@@ -45,6 +48,6 @@ class FilePageState {
       ..isGridView = isGridView
       ..updateTasks = updateTasks
       ..dirChoosePaths = dirChoosePaths
-    ;
+      ..selectMode = selectMode;
   }
 }

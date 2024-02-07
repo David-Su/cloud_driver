@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../model/entity/update_task_entity.dart';
 
 abstract class FilePageEvent {
@@ -16,6 +18,12 @@ class ForwardEvent extends FilePageEvent {
   ForwardEvent(this.index); //文件在列表中的索引
 }
 
+class SelectEvent extends FilePageEvent {
+  final int index;
+
+  SelectEvent(this.index); //文件在列表中的索引
+}
+
 //创建目录
 class CreateDirEvent extends FilePageEvent {
   final String name;
@@ -25,9 +33,10 @@ class CreateDirEvent extends FilePageEvent {
 
 //删除文件
 class DeleteFileEvent extends FilePageEvent {
-  final String name;
+  final List<String> names;
 
-  const DeleteFileEvent(this.name);
+  DeleteFileEvent(this.names);
+
 }
 
 //文件列表滚动事件
@@ -38,7 +47,11 @@ class FileListScrollEvent extends FilePageEvent {
 }
 
 //刷新所有数据
-class RefreshDataEvent extends FilePageEvent {}
+class RefreshDataEvent extends FilePageEvent {
+  final Completer<void>? completer;
+
+  RefreshDataEvent(this.completer);
+}
 
 //下载服务器文件
 class DownloadFileEvent extends FilePageEvent {
