@@ -3,6 +3,7 @@ import 'package:cloud_driver/page/file/mobile/file_page.dart'
     if (dart.library.html) 'package:cloud_driver/page/file/web/file_page.dart'
     as file_view;
 import 'package:cloud_driver/page/login_page.dart';
+import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -40,16 +41,16 @@ class MyApp extends StatelessWidget {
                 // Notice that the counter didn't reset back to zero; the application
                 // is not restarted.
                 appBarTheme: AppBarTheme.of(context).copyWith(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white
-                ),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white),
                 primarySwatch: Colors.blue,
                 useMaterial3: true,
               ),
               // initialRoute: "/login",
               routes: {
                 "/login": (BuildContext context) => LoginPage(),
-                "/file": (BuildContext context) => const file_view.FilePage()
+                "/file": (BuildContext context) => const file_view.FilePage(),
+                "/video": (BuildContext context) => const VideoPage(),
               },
               builder: FToastBuilder(),
               home: LoginPage(),

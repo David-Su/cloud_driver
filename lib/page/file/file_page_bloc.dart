@@ -7,9 +7,11 @@ import 'package:cloud_driver/manager/platform/platform_adapter.dart';
 import 'package:cloud_driver/model/entity/rename_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/model/event/event.dart';
+import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:cloud_driver/util/util.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:collection/collection.dart';
 import '../../config/config.dart';
@@ -19,6 +21,7 @@ import '../../model/entity/delete_file_entity.dart';
 import '../../model/entity/list_file_entity.dart';
 import 'file_page_event.dart';
 import 'file_page_state.dart';
+import 'package:open_file/open_file.dart';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   final BuildContext _context;
@@ -49,6 +52,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     on<MoveFileEvent>(_moveFileEvent);
     on<DirChooseBackwardEvent>(_dirChooseBackward);
     on<SelectEvent>(_selectEvent);
+    on<CloseSelectModeEvent>(_closeSelectModeEvent);
+    on<OpenFileEvent>(_openFile);
 
     //WebSocket监听服务端消息
     _wsConn();
@@ -130,9 +135,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         ..forEach((element) {
           element.isSelected = false;
         });
-      emit(state.clone()
-        ..children = newChildren
-        ..selectMode = false);
+      emit(state.clone()..children = newChildren);
+      _emitSelectModeState(emit);
     } else {
       final paths = state.paths.toList();
       if (paths.length > 1) {
@@ -269,7 +273,6 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       if (previewImg != null) {
         path.previewImgUrl =
             "${NetworkConfig.urlBase}${path.previewImg}&token=${sp.getString(SpConfig.keyToken)}";
-        debugPrint("previewImgUrl -> ${path.previewImgUrl}");
       }
 
       path.children?.forEach((element) {
@@ -320,9 +323,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     emit(state.clone()
       ..paths = paths
-      ..children = children
-      ..selectMode = false);
-
+      ..children = children);
+    _emitSelectModeState(emit);
     debugPrint("_currentFile->${_currentFile?.name}");
 
     emit(state.clone()..fileListPosition = _currentFile?.position ?? 0);
@@ -498,8 +500,29 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final newChildren = state.children.toList();
     final child = newChildren[event.index];
     child.isSelected = !child.isSelected;
+    emit(state.clone()..children = newChildren);
+    _emitSelectModeState(emit);
+  }
+
+  FutureOr<void> _closeSelectModeEvent(
+      CloseSelectModeEvent event, Emitter<FilePageState> emit) {
+    final newChildren = state.children.toList()
+      ..forEach((element) {
+        element.isSelected = false;
+      });
+    emit(state.clone()..children = newChildren);
+    _emitSelectModeState(emit);
+  }
+
+  _emitSelectModeState(Emitter<FilePageState> emit) {
     emit(state.clone()
-      ..children = newChildren
-      ..selectMode = newChildren.any((element) => element.isSelected));
+      ..selectMode = state.children.any((element) => element.isSelected));
+  }
+
+  FutureOr<void> _openFile(
+      OpenFileEvent event, Emitter<FilePageState> emit) async {
+    final url = await _getDownloadUrl(state.children[event.index].name);
+    Navigator.of(event.context)
+        .pushNamed("/video", arguments: VideoPageArgs(url));
   }
 }

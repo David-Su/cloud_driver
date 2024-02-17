@@ -41,7 +41,7 @@ dependencies:
   #flutter pub run build_runner build
   json_annotation: ^4.8.0
 
-  fluttertoast: ^8.2.1
+  fluttertoast: ^8.2.4
 
   flutter_dropzone: ^3.0.5
 
@@ -58,6 +58,12 @@ dependencies:
   file: ^6.1.4
 
   flutter_svg: ^2.0.4
+
+  open_file: ^3.3.2
+
+  url_launcher: ^6.2.4
+
+  video_player: ^2.8.2
 
 dev_dependencies:
   flutter_test:

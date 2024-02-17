@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+
 import '../../model/entity/update_task_entity.dart';
 
 abstract class FilePageEvent {
@@ -36,7 +38,6 @@ class DeleteFileEvent extends FilePageEvent {
   final List<String> names;
 
   DeleteFileEvent(this.names);
-
 }
 
 //文件列表滚动事件
@@ -75,6 +76,12 @@ class PlayVideoEvent extends FilePageEvent {
   final int index;
 
   PlayVideoEvent(this.type, this.index);
+}
+
+class OpenFileEvent extends FilePageEvent {
+  final int index;
+  final BuildContext context;
+  OpenFileEvent(this.index,this.context);
 }
 
 //弹出进度对话框完成
@@ -124,3 +131,6 @@ class MoveFileEvent extends FilePageEvent {
 
   MoveFileEvent(this.index);
 }
+
+//取消选择模式事件
+class CloseSelectModeEvent extends FilePageEvent {}

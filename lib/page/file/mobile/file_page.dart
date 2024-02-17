@@ -6,6 +6,7 @@ import 'package:cloud_driver/manager/platform/platform_adapter.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/page/file/base_page_state.dart';
+import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:cloud_driver/route/PopupWindowRoute.dart';
 import 'package:cloud_driver/util/util.dart';
 import 'package:cloud_driver/widget/ExpandableFab.dart';
@@ -19,6 +20,7 @@ import 'package:mime/mime.dart';
 import '../file_page_bloc.dart';
 import '../file_page_event.dart';
 import '../file_page_state.dart';
+import 'package:open_file/open_file.dart';
 
 class FilePage extends StatefulWidget {
   const FilePage({Key? key}) : super(key: key);
@@ -57,7 +59,30 @@ class _FilePageState extends BasePageState {
         child: PopScope(
           child: Scaffold(
             appBar: AppBar(
-              title: const Text("文件"),
+              title: BlocBuilder<FilePageBloc, FilePageState>(
+                  buildWhen: (pre, curr) {
+                return pre.selectMode != curr.selectMode;
+              }, builder: (context, state) {
+                if (state.selectMode) {
+                  final selectedCount = state.children
+                      .where((element) => element.isSelected)
+                      .length;
+                  return Container(
+                    child: Row(
+                      children: [
+                        IconButton(
+                            onPressed: () {
+                              bloc.add(CloseSelectModeEvent());
+                            },
+                            icon: const Icon(Icons.close)),
+                        Text("已选择$selectedCount项")
+                      ],
+                    ),
+                  );
+                } else {
+                  return const Text("文件");
+                }
+              }),
               automaticallyImplyLeading: false,
               shadowColor: Theme.of(context).colorScheme.shadow,
               actions: [
@@ -569,6 +594,8 @@ class _FilePageState extends BasePageState {
   void _onFileItemTap(ListFileResult file, int index) {
     if (file.isDir) {
       bloc.add(ForwardEvent(index));
+    } else {
+      bloc.add(OpenFileEvent(index,context));
     }
   }
 
@@ -826,17 +853,6 @@ class _FilePageState extends BasePageState {
 
   Widget _getDivider() => const Divider(height: 0.5, thickness: 0.5);
 
-  Future<void> _nextFrame() async {
-    final completer = Completer<void>();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      completer.complete();
-    });
-    await completer.future;
-  }
-
-// Widget _buildDirChooseWidget() {
-//   bloc.state.children
-// }
 }
 
 class BottomSheetMenuItem {
