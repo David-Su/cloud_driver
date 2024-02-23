@@ -10,7 +10,7 @@ class VideoPage extends StatefulWidget {
 }
 
 class _VideoPageState extends State<VideoPage> {
-  VideoPlayerController? _controller;
+  late VideoPlayerController _controller;
 
   @override
   void initState() {
@@ -18,16 +18,36 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    _controller.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as VideoPageArgs;
+    _controller = VideoPlayerController.networkUrl(Uri.parse(args.url))
+      ..initialize().then((_) {
+        // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
+        setState(() {});
+      });
+  }
+
+
+  @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as VideoPageArgs;
 
-    final controller =
-        _controller ?? VideoPlayerController.networkUrl(Uri.parse(args.url))
-          ..initialize().then((_) {
-            // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
-            setState(() {});
-          });
-    _controller = controller;
+    // final controller =
+    //     _controller ?? VideoPlayerController.networkUrl(Uri.parse(args.url))
+    //       ..initialize().then((_) {
+    //         // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
+    //         setState(() {});
+    //       });
+    // _controller = controller;
+
+    final controller = _controller;
 
     return Scaffold(
       body: Center(

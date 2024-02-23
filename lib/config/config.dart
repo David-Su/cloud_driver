@@ -44,9 +44,9 @@ class NetworkConfig {
       case ChannelConfig.channelIntranet:
         return "192.168.0.250:8080";
     }
-    return "192.168.0.250:8080";
+    return "192.168.20.152:8080";
     // return "127.0.0.1:8080";
-    return "fqym.top:8080";
+    // return "fqym.top:8080";
   }
 }
 
