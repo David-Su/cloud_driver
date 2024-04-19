@@ -33,18 +33,16 @@ class _FilePageState extends BasePageState {
   final _scrollController = ScrollController();
   final _taskButtonKey = GlobalKey();
   final _platformAdapter = PlatformAdapter();
+  //上传进度弹窗的key
+  final _keyProgressDialog = GlobalKey();
+
 
   @override
   void initState() {
     super.initState();
-
-    // 屏蔽浏览器默认的右键点击事件
-    _platformAdapter.webBlocRightClick();
-
     _scrollController.addListener(() {
       bloc.add(FileListScrollEvent(_scrollController.position.pixels));
     });
-
     bloc.add(InitEvent());
   }
 
@@ -249,6 +247,7 @@ class _FilePageState extends BasePageState {
                                                     );
                                             }),
                                       ),
+                                      key: _keyProgressDialog,
                                       alignment: AlignmentDirectional.topEnd,
                                       right: right,
                                       top: top,

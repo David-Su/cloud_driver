@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_driver/manager/event_bus_manager.dart';
@@ -21,6 +22,7 @@ import '../../model/entity/list_file_entity.dart';
 import 'file_page_event.dart';
 import 'file_page_state.dart';
 import 'package:mime/mime.dart';
+import 'dart:async';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   final BuildContext _context;
@@ -29,6 +31,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   Completer<void>? _progressDialogCompleter;
   Completer<void>? _waitServerDialogCompleter;
   StreamSubscription? _reLoginSubscription;
+  bool _autoReConnWs = true;
 
   FilePageBloc(this._context) : super(FilePageState()) {
     on<InitEvent>(_init);
@@ -54,28 +57,32 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     on<CloseSelectModeEvent>(_closeSelectModeEvent);
     on<OpenFileEvent>(_openFile);
 
-    //WebSocket监听服务端消息
-    _wsConn();
-
-    //监听事件
-    _reLoginSubscription =
-        EventBusManager.eventBus.on<ReLoginEvent>().listen((event) async {
+    Future(() async {
+      //WebSocket监听服务端消息
       await _wsConn();
+      //监听事件
+      _reLoginSubscription =
+          EventBusManager.eventBus.on<ReLoginEvent>().listen((event) async {
+        final formerAutoReConnWs = _autoReConnWs;
+        _autoReConnWs = false;
+        await _wsConn();
+        _autoReConnWs = formerAutoReConnWs;
+      });
     });
   }
 
   Future<void> _wsConn() async {
-    _webSocketChannel?.sink.close();
+    await _webSocketChannel?.sink.close();
 
-    final token =
-        (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
+    final token = await SharedPreferences.getInstance()
+        .then((value) => value.getString(SpConfig.keyToken));
 
     final channel = WebSocketChannel.connect(Uri.parse(
         "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
 
-    final stream = channel.stream;
+    await channel.ready;
 
-    stream.listen((event) {
+    channel.stream.listen((event) {
       final Map<String, dynamic> eventJson = json.decode(event.toString());
 
       final dataType = eventJson["dataType"] as int;
@@ -103,9 +110,13 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
             add(UpdateTasksEvent(List.of(state.updateTasks)));
           }
       }
-    }, onError: (error) {
-      debugPrint('ws error $error');
+    }, onError: (error) async {
+      debugPrint('ws onError $error');
+      await _wsReConn();
       ToastUtil.showDefaultToast("与服务器断开连接，请重新登录");
+    }, onDone: () async{
+      debugPrint('ws onDone');
+      await _wsReConn();
     });
 
     channel.sink.add("hello from flutter");
@@ -113,9 +124,43 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     _webSocketChannel = channel;
   }
 
+  Future _wsReConn() async {
+    //等到上一次重连结束
+    if (_autoReConnWs && _lastWsReConnJob?.isCompleted == true) {
+      //与上一次重连的最小时间间隔为minSpan
+      await Future(() async {
+        final lastTime = _lastWsReConnTime;
+        if (lastTime != null) {
+          const minSpan = 500;
+          final nowTime = DateTime.now().millisecondsSinceEpoch;
+          final span = nowTime - lastTime;
+          final int delay;
+          if (span > minSpan) {
+            delay = minSpan;
+          } else if (span > 0) {
+            delay = minSpan - span;
+          } else {
+            delay = 0;
+          }
+          await Future.delayed(Duration(milliseconds: delay));
+        }
+      });
+
+      final completer = Completer();
+      await _wsConn();
+      _lastWsReConnTime = DateTime.now().millisecondsSinceEpoch;
+      _lastWsReConnJob = completer;
+      completer.complete();
+    }
+  }
+
+  int? _lastWsReConnTime;
+  Completer? _lastWsReConnJob;
+
   @override
   Future<void> close() async {
     super.close();
+    _autoReConnWs = false;
     _webSocketChannel?.sink.close();
     _reLoginSubscription?.cancel();
   }
