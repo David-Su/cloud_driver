@@ -96,7 +96,9 @@ class _FilePageState extends BasePageState {
                     return Visibility(
                       child: IconButton(
                         icon: const Icon(Icons.download_rounded),
-                        onPressed: () {},
+                        onPressed: () {
+
+                        },
                       ),
                       visible: selectedAllFile,
                     );

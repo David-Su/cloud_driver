@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ffi';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_driver/manager/event_bus_manager.dart';
