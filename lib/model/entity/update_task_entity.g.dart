@@ -10,7 +10,7 @@ UpdateTaskEntity _$UpdateTaskEntityFromJson(Map<String, dynamic> json) =>
     UpdateTaskEntity(
       json['path'] as String?,
       (json['progress'] as num?)?.toDouble(),
-      json['speed'] as int?,
+      (json['speed'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$UpdateTaskEntityToJson(UpdateTaskEntity instance) =>

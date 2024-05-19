@@ -20,6 +20,7 @@ class NetworkConfig {
   static const String apiUploadFile = "/uploadfile";
   static const String apiRenameFile = "/renamefile";
   static const String apiWsUploadTasks = "/websocket/uploadtasks";
+  static const String apiOpenDir = "/opendir";
   static const int timeoutConnect = 5000;
   static const int timeoutReceive = 5000;
 

@@ -2,26 +2,26 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:bloc/bloc.dart';
+import 'package:cloud_driver/config/config.dart';
+import 'package:cloud_driver/manager/dio_manager.dart';
 import 'package:cloud_driver/manager/event_bus_manager.dart';
 import 'package:cloud_driver/manager/platform/platform_adapter.dart';
+import 'package:cloud_driver/model/entity/create_dir_entity.dart';
+import 'package:cloud_driver/model/entity/delete_file_entity.dart';
+import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:cloud_driver/model/entity/rename_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/model/event/event.dart';
 import 'package:cloud_driver/util/util.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:collection/collection.dart';
-import '../../config/config.dart';
-import '../../manager/dio_manager.dart';
-import '../../model/entity/create_dir_entity.dart';
-import '../../model/entity/delete_file_entity.dart';
-import '../../model/entity/list_file_entity.dart';
+
 import 'file_page_event.dart';
 import 'file_page_state.dart';
-import 'package:mime/mime.dart';
-import 'dart:async';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   final BuildContext _context;
@@ -113,7 +113,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       debugPrint('ws onError $error');
       await _wsReConn();
       ToastUtil.showDefaultToast("与服务器断开连接，请重新登录");
-    }, onDone: () async{
+    }, onDone: () async {
       debugPrint('ws onDone');
       await _wsReConn();
     });

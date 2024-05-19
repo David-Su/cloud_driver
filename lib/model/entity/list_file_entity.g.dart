@@ -29,7 +29,7 @@ ListFileResult _$ListFileResultFromJson(Map<String, dynamic> json) =>
           .toList(),
       json['isDir'] as bool,
       json['name'] as String,
-      json['size'] as int?,
+      (json['size'] as num?)?.toInt(),
       json['previewImg'] as String?,
     );
 

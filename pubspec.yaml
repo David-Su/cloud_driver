@@ -78,7 +78,8 @@ dev_dependencies:
 
   build_runner: ^2.1.10
 
-  json_serializable: ^6.2.0
+  # dart run build_runner build构建实现类
+  json_serializable: ^6.8.0
 
   http: ^0.13.4
 
