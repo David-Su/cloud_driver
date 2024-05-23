@@ -1,12 +1,14 @@
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
+import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
+import 'package:open_file/open_file.dart';
 
 class FilePageState {
   //当前路径
-  List<ListFileResult> paths = [];
+  List<OpenDirResult> paths = [];
 
   //当前路径下的文件
-  List<ListFileResult> children = [];
+  List<OpenDirChild> children = [];
 
   //文件列表的滑动位置
   double fileListPosition = 0;
@@ -18,7 +20,7 @@ class FilePageState {
   bool showWaitServerDialog = false;
 
   //当前文件目录选择路径
-  List<ListFileResult> dirChoosePaths = [];
+  List<OpenDirResult> dirChoosePaths = [];
 
   //上传进度
   double uploadProgress = 0;

@@ -96,10 +96,10 @@ class DioManager {
       if (err is DioError) {
         switch (err.type) {
           case DioErrorType.connectTimeout:
-            ToastUtil.showDefaultToast("连接超时，请重试");
+            Util.showDefaultToast("连接超时，请重试");
             break;
           default:
-            ToastUtil.showDefaultToast(err.message);
+            Util.showDefaultToast(err.message);
             break;
         }
       }
@@ -114,7 +114,7 @@ class DioManager {
   BaseEntity<T>? defaultHandle<T>(
       BuildContext context, BaseEntity<T> baseEntity) {
     if (baseEntity.code != NetworkConfig.codeOk) {
-      ToastUtil.showDefaultToast(baseEntity.message);
+      Util.showDefaultToast(baseEntity.message);
     }
 
     switch (baseEntity.code) {

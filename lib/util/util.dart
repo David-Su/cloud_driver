@@ -1,9 +1,11 @@
+import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/main.dart';
+import 'package:cloud_driver/model/entity/base_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-class ToastUtil {
-  ToastUtil._internal();
+class Util {
+  Util._internal();
 
   static showDefaultToast(String content) {
     final context = MyApp.navigatorKey.currentContext!;
@@ -24,4 +26,24 @@ class ToastUtil {
       toastDuration: const Duration(seconds: 2),
     );
   }
+
+  static T? handleBaseEntity<T>(BaseEntity<T?>? baseEntity){
+
+    if(baseEntity == null) {
+      return null;
+    }
+
+    if(baseEntity.code != NetworkConfig.codeOk) {
+      final message = baseEntity.message;
+
+      if(message.isNotEmpty == true){
+        Util.showDefaultToast(message);
+      }
+
+      return null;
+    }
+
+    return baseEntity.result;
+  }
 }
+

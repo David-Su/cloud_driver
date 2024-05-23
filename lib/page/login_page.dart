@@ -233,7 +233,7 @@ class LoginPage extends StatelessWidget {
             case NetworkConfig.codeOk:
               return baseEntity;
             default:
-              ToastUtil.showDefaultToast(baseEntity.message);
+              Util.showDefaultToast(baseEntity.message);
               break;
           }
         });

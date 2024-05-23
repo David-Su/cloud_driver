@@ -17,8 +17,12 @@ class OpenDirEntity extends BaseEntity<OpenDirResult> {
 @JsonSerializable()
 class OpenDirResult {
   String? name;
-  List<DirCloudFileChild>? children;
+  List<OpenDirChild>? children;
   int? size;
+
+  //当前列表滚动位置，非网络数据
+  @JsonKey(ignore: true)
+  double? position;
 
   OpenDirResult(this.name, this.children, this.size);
 
@@ -29,16 +33,28 @@ class OpenDirResult {
 }
 
 @JsonSerializable()
-class DirCloudFileChild {
+class OpenDirChild {
   bool? isDir;
   String? name;
   int? size;
   String? previewImg;
 
-  DirCloudFileChild(this.isDir, this.name, this.size, this.previewImg);
+  //previewImg生成的完整url
+  @JsonKey(ignore: true)
+  String? previewImgUrl;
 
-  factory DirCloudFileChild.fromJson(Map<String, dynamic> json) =>
-      _$DirCloudFileChildFromJson(json);
+  //选择状态
+  @JsonKey(ignore: true)
+  bool isSelected = false;
 
-  Map<String, dynamic> toJson() => _$DirCloudFileChildToJson(this);
+  //数据大小显示，非网络数据
+  @JsonKey(ignore: true)
+  String displaySize = "";
+
+  OpenDirChild(this.isDir, this.name, this.size, this.previewImg);
+
+  factory OpenDirChild.fromJson(Map<String, dynamic> json) =>
+      _$OpenDirChildFromJson(json);
+
+  Map<String, dynamic> toJson() => _$OpenDirChildToJson(this);
 }

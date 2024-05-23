@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_driver/manager/platform/platform_adapter.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
+import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/page/file/base_page_state.dart';
 import 'package:cloud_driver/page/video/video_page.dart';
@@ -21,6 +22,7 @@ import '../file_page_bloc.dart';
 import '../file_page_event.dart';
 import '../file_page_state.dart';
 import 'package:open_file/open_file.dart';
+import 'package:collection/collection.dart';
 
 class FilePage extends StatefulWidget {
   const FilePage({Key? key}) : super(key: key);
@@ -33,9 +35,9 @@ class _FilePageState extends BasePageState {
   final _scrollController = ScrollController();
   final _taskButtonKey = GlobalKey();
   final _platformAdapter = PlatformAdapter();
+
   //上传进度弹窗的key
   final _keyProgressDialog = GlobalKey();
-
 
   @override
   void initState() {
@@ -92,13 +94,11 @@ class _FilePageState extends BasePageState {
                     final selected =
                         state.children.where((element) => element.isSelected);
                     final selectedAllFile = selected.isNotEmpty &&
-                        selected.every((element) => !element.isDir);
+                        selected.every((element) => element.isDir == false);
                     return Visibility(
                       child: IconButton(
                         icon: const Icon(Icons.download_rounded),
-                        onPressed: () {
-
-                        },
+                        onPressed: () {},
                       ),
                       visible: selectedAllFile,
                     );
@@ -141,8 +141,10 @@ class _FilePageState extends BasePageState {
                                   ));
 
                           if (delete) {
-                            bloc.add(DeleteFileEvent(
-                                files.map((e) => e.name).toList()));
+                            bloc.add(DeleteFileEvent(files
+                                .map((e) => e.name)
+                                .whereNotNull()
+                                .toList()));
                           }
                         },
                       ),
@@ -177,7 +179,7 @@ class _FilePageState extends BasePageState {
                         key: _taskButtonKey,
                         onPressed: () {
                           if (bloc.state.updateTasks.isEmpty) {
-                            ToastUtil.showDefaultToast("没有任务");
+                            Util.showDefaultToast("没有任务");
                             return;
                           }
 
@@ -412,7 +414,7 @@ class _FilePageState extends BasePageState {
             previous.children.length != current.children.length,
       );
 
-  Widget _buildGridFileWidget(List<ListFileResult> children) {
+  Widget _buildGridFileWidget(List<OpenDirChild> children) {
     return GridView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: children.length,
@@ -451,10 +453,10 @@ class _FilePageState extends BasePageState {
                                   ),
                                 )
                               : Icon(
-                                  file.isDir
+                                  file.isDir == true
                                       ? Icons.folder
                                       : Icons.description_outlined,
-                                  color: file.isDir
+                                  color: file.isDir == true
                                       ? Colors.orangeAccent
                                       : Colors.grey,
                                 )),
@@ -463,7 +465,7 @@ class _FilePageState extends BasePageState {
                       ),
                       Expanded(
                           child: Text(
-                        file.name,
+                        file.name ?? "",
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleSmall,
@@ -497,18 +499,18 @@ class _FilePageState extends BasePageState {
   }
 
   ///纵向的文件列表
-  Widget _getVerticalFileList(List<ListFileResult> children,
+  Widget _getVerticalFileList(List<OpenDirChild> children,
       {bool dirOnly = false, //只显示文件夹
       ScrollController? scrollController,
-      Future<void> Function(ListFileResult file, BuildContext context,
+      Future<void> Function(OpenDirChild file, BuildContext context,
               TapUpDetails details, int index)?
           onSecondaryTapUp,
-      void Function(ListFileResult file, int index)? onFileItemTap}) {
-    final List<ListFileResult> items;
+      void Function(OpenDirChild file, int index)? onFileItemTap}) {
+    final List<OpenDirChild> items;
 
     if (dirOnly) {
       final copy = children.toList();
-      copy.removeWhere((element) => !element.isDir);
+      copy.removeWhere((element) => element.isDir == false);
       items = copy;
     } else {
       items = children;
@@ -529,12 +531,14 @@ class _FilePageState extends BasePageState {
             child: Row(
               children: [
                 Icon(
-                  file.isDir ? Icons.folder : Icons.description_outlined,
-                  color: file.isDir ? Colors.orangeAccent : Colors.grey,
+                  file.isDir == true
+                      ? Icons.folder
+                      : Icons.description_outlined,
+                  color: file.isDir == true ? Colors.orangeAccent : Colors.grey,
                   size: 29,
                 ),
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 3)),
-                Text(file.name,
+                Text(file.name ?? "",
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 13.5,
@@ -592,20 +596,24 @@ class _FilePageState extends BasePageState {
   }
 
   ///文件的点击事件
-  void _onFileItemTap(ListFileResult file, int index) {
-    if (file.isDir) {
+  void _onFileItemTap(OpenDirChild file, int index) {
+    if (file.isDir == true) {
       bloc.add(ForwardEvent(index));
     } else {
-      bloc.add(OpenFileEvent(index,context));
+      bloc.add(OpenFileEvent(index, context));
     }
   }
 
   ///右键点击处理
-  Future<void> _onSecondaryTapUp(ListFileResult file, BuildContext context,
+  Future<void> _onSecondaryTapUp(OpenDirChild file, BuildContext context,
       TapUpDetails details, int index) async {
-    final mimeType = lookupMimeType(file.name);
+    final fileName = file.name;
 
-    print("onSecondaryTapUp: lookupMimeType->${lookupMimeType(file.name)}");
+    if (fileName == null || fileName.isEmpty) return;
+
+    final mimeType = lookupMimeType(fileName);
+
+    print("onSecondaryTapUp: lookupMimeType->${lookupMimeType(fileName)}");
 
     // lookupMimeType(file.name);
 
@@ -617,7 +625,7 @@ class _FilePageState extends BasePageState {
 
     final data = {idDelete: "删除", idRename: "重命名", idMove: "移动到"};
 
-    if (!file.isDir) {
+    if (file.isDir == false) {
       data.addAll({idDownload: "下载"});
       if (mimeType?.startsWith("video") == true) {
         data.addAll({idPlayVideo: "使用potPlayer播放"});
@@ -683,7 +691,7 @@ class _FilePageState extends BasePageState {
                     TextButton(
                         onPressed: () {
                           if (controller.text == file.name) {
-                            ToastUtil.showDefaultToast("请使用新的命名");
+                            Util.showDefaultToast("请使用新的命名");
                           } else {
                             Navigator.of(context).pop(true);
                           }
@@ -778,7 +786,7 @@ class _FilePageState extends BasePageState {
                                   ? _getVerticalFileList(children,
                                       dirOnly: true,
                                       onFileItemTap:
-                                          (ListFileResult file, int index) =>
+                                          (OpenDirChild file, int index) =>
                                               bloc.add(
                                                   DirChooseForwardEvent(index)))
                                   : Container();
@@ -828,7 +836,7 @@ class _FilePageState extends BasePageState {
             final List<Widget> children = [];
 
             for (int index = 0; index < paths.length; index++) {
-              children.add(Text(paths[index].name,
+              children.add(Text(paths[index].name ?? "",
                   style: TextStyle(
                     color: index == paths.length - 1
                         ? Theme.of(context).unselectedWidgetColor
@@ -853,7 +861,6 @@ class _FilePageState extends BasePageState {
   }
 
   Widget _getDivider() => const Divider(height: 0.5, thickness: 0.5);
-
 }
 
 class BottomSheetMenuItem {

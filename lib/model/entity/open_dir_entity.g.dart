@@ -26,7 +26,7 @@ OpenDirResult _$OpenDirResultFromJson(Map<String, dynamic> json) =>
     OpenDirResult(
       json['name'] as String?,
       (json['children'] as List<dynamic>?)
-          ?.map((e) => DirCloudFileChild.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => OpenDirChild.fromJson(e as Map<String, dynamic>))
           .toList(),
       (json['size'] as num?)?.toInt(),
     );
@@ -38,15 +38,14 @@ Map<String, dynamic> _$OpenDirResultToJson(OpenDirResult instance) =>
       'size': instance.size,
     };
 
-DirCloudFileChild _$DirCloudFileChildFromJson(Map<String, dynamic> json) =>
-    DirCloudFileChild(
+OpenDirChild _$OpenDirChildFromJson(Map<String, dynamic> json) => OpenDirChild(
       json['isDir'] as bool?,
       json['name'] as String?,
       (json['size'] as num?)?.toInt(),
       json['previewImg'] as String?,
     );
 
-Map<String, dynamic> _$DirCloudFileChildToJson(DirCloudFileChild instance) =>
+Map<String, dynamic> _$OpenDirChildToJson(OpenDirChild instance) =>
     <String, dynamic>{
       'isDir': instance.isDir,
       'name': instance.name,

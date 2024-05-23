@@ -9,6 +9,7 @@ import 'package:cloud_driver/manager/platform/platform_adapter.dart';
 import 'package:cloud_driver/model/entity/create_dir_entity.dart';
 import 'package:cloud_driver/model/entity/delete_file_entity.dart';
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
+import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/rename_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/model/event/event.dart';
@@ -112,7 +113,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }, onError: (error) async {
       debugPrint('ws onError $error');
       await _wsReConn();
-      ToastUtil.showDefaultToast("与服务器断开连接，请重新登录");
+      Util.showDefaultToast("与服务器断开连接，请重新登录");
     }, onDone: () async {
       debugPrint('ws onDone');
       await _wsReConn();
@@ -165,10 +166,16 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   }
 
   Future<void> _init(InitEvent event, Emitter<FilePageState> emit) async {
-    await _refresh(emit);
+    final openFile = await _openDir(["."]);
+
+    if (openFile == null) return;
+
+    emit(state.clone()
+      ..paths = [openFile]
+      ..children = openFile.children ?? []);
   }
 
-  FutureOr<void> _back(BackEvent event, Emitter<FilePageState> emit) {
+  FutureOr<void> _back(BackEvent event, Emitter<FilePageState> emit) async{
     final hadSelected = state.children
             .firstWhereOrNull((element) => element.isSelected == true) !=
         null;
@@ -184,7 +191,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       final paths = state.paths.toList();
       if (paths.length > 1) {
         paths.removeAt(paths.length - 1);
-        _refreshList(paths, emit);
+        emit(state.clone()..paths = paths);
+        await _refresh(emit);
       }
     }
   }
@@ -202,7 +210,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
             CreateDirEntity.fromJson(json),
         context: _context);
 
-    if (createDirEntity == null) return;
+    if (Util.handleBaseEntity(createDirEntity) == null) return;
 
     if (emit != null) {
       await _refresh(emit);
@@ -231,104 +239,55 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _refresh(Emitter<FilePageState> emit,
       {bool isShowDialog = true}) async {
-    final listFile = await DioManager()
-        .doPost(
-            api: NetworkConfig.apiListFile,
-            transformer: (json) => ListFileEntity.fromJson(json),
-            context: _context,
-            isShowDialog: isShowDialog)
-        .then((value) => value?.result);
+    final openFile = await _openDir(_getWholePathList());
 
-    if (listFile == null) return;
+    if (openFile == null) return;
 
-    final _currentPaths = state.paths.toList();
+    emit(state.clone()..children = openFile.children ?? []);
+  }
 
-    final files = [listFile];
+  Future<OpenDirResult?> _openDir(List<String> paths,
+      {bool isShowDialog = true}) async {
+    final openDirEntity = await DioManager().doPost(
+        api: NetworkConfig.apiOpenDir,
+        data: {"paths": paths},
+        transformer: (json) => OpenDirEntity.fromJson(json),
+        context: _context,
+        isShowDialog: isShowDialog);
 
-    for (int deep = 0; deep < _currentPaths.length; deep++) {
-      var replace = false;
-      for (var element in files) {
-        print(
-            "_refresh 第${deep}层->${_currentPaths[deep].name}  对比 ${element.name}");
+    final openFile = Util.handleBaseEntity(openDirEntity);
 
-        final path = _currentPaths[deep];
+    if (openFile == null) return null;
 
-        if (element.name == path.name) {
-          _currentPaths.replaceRange(
-              deep, deep + 1, [element..position = path.position]);
+    final openFileChildren = openFile.children;
 
-          // print("_refresh 替换->${_paths[deep].name}");
-
-          replace = true;
-        }
+    openFileChildren?.sort((OpenDirChild a, OpenDirChild b) {
+      if (a.isDir == b.isDir) {
+        return (b.size ?? 0).compareTo(a.size ?? 0);
       }
-      //如果本层没有匹配的目录，则回退到上一层
-      if (!replace) {
-        _currentPaths.sublist(0, deep);
-        break;
+      if (a.isDir == true) {
+        return -1;
+      } else {
+        return 1;
       }
+    });
 
-      final last = files.toList();
-      files.clear();
-      for (var element in last) {
-        element.children?.forEach((element) {
-          files.add(element);
-        });
-      }
+    assemblePreviewImgUrl(openFile);
 
-      print("_refresh 第${deep}层->files：${files.length}");
+    return openFile;
+  }
 
-      //如果下一层已经没有目录了，那路径将止步于此
-      if (files.isEmpty) {
-        _currentPaths.sublist(0, deep + 1);
-        break;
-      }
-    }
-
-    if (_currentPaths.isEmpty) _currentPaths.add(listFile);
-
-    void sort(ListFileResult path) {
-      final children = path.children;
-      children?.sort((ListFileResult a, ListFileResult b) {
-        if (a.isDir == b.isDir) {
-          return (b.size ?? 0).compareTo(a.size ?? 0);
-        }
-        if (a.isDir) {
-          return -1;
-        } else {
-          return 1;
-        }
-      });
-      children?.forEach((child) {
-        sort(child);
-      });
-    }
-
-    //排序-文件夹排前面-size大的排前面
-    for (final path in _currentPaths) {
-      sort(path);
-    }
-
+  Future<void> assemblePreviewImgUrl(OpenDirResult openDirResult) async {
     final sp = await SharedPreferences.getInstance();
+    final token = sp.getString(SpConfig.keyToken);
 
-    void assemblePreviewImgUrl(ListFileResult path) {
-      final previewImg = path.previewImg;
+    openDirResult.children?.forEach((element) {
+      final previewImg = element.previewImg;
       if (previewImg != null) {
-        path.previewImgUrl =
-            "${NetworkConfig.urlBase}${path.previewImg}&token=${sp.getString(SpConfig.keyToken)}";
+        element.previewImgUrl =
+            "${NetworkConfig.urlBase}$previewImg&token=$token";
       }
-
-      path.children?.forEach((element) {
-        assemblePreviewImgUrl(element);
-      });
-    }
-
-    //previewImg生成的完整url
-    for (final path in _currentPaths) {
-      assemblePreviewImgUrl(path);
-    }
-
-    _refreshList(_currentPaths, emit);
+    });
   }
 
   void _fileListScroll(FileListScrollEvent event, Emitter<FilePageState> emit) {
@@ -338,7 +297,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     state.fileListPosition = event.position;
   }
 
-  ListFileResult? get _currentFile {
+  OpenDirResult? get _currentFile {
     final paths = state.paths;
     return paths.isNotEmpty ? paths.last : null;
   }
@@ -349,28 +308,20 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     event.completer?.complete();
   }
 
-  void _forward(ForwardEvent event, Emitter<FilePageState> emit) {
-    final newPath = state.paths.toList();
-    newPath.add(state.children[event.index]);
+  Future<void> _forward(ForwardEvent event, Emitter<FilePageState> emit) async {
+    final fileName = state.children[event.index].name;
 
-    _refreshList(newPath, emit);
-  }
+    if (fileName == null || fileName.isEmpty) return;
 
-  void _refreshList(List<ListFileResult> paths, Emitter<FilePageState> emit) {
-    final children = paths.last.children ?? [];
+    final newPath = _getWholePathList(fileName: fileName);
 
-    for (final file in children) {
-      final size = file.size;
-      file.displaySize = size != null ? _getDisplaySize(size.toDouble()) : "";
-    }
+    final openFile = await _openDir(newPath);
+
+    if (openFile == null) return;
 
     emit(state.clone()
-      ..paths = paths
-      ..children = children);
-    _emitSelectModeState(emit);
-    debugPrint("_currentFile->${_currentFile?.name}");
-
-    emit(state.clone()..fileListPosition = _currentFile?.position ?? 0);
+      ..paths = [...state.paths, openFile]
+      ..children = openFile.children ?? []);
   }
 
   FutureOr<void> _downloadFile(
@@ -391,7 +342,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
           return _getWholePathStr();
         });
 
-    add(InitEvent());
+    _refresh(emit);
   }
 
   Future<String> _getDownloadUrl(String? fileName) async {
@@ -407,8 +358,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   //获取完整路径数组
   List<String> _getWholePathList(
-      {List<ListFileResult>? paths, String? fileName}) {
-    final pathList = (paths ?? state.paths).map((e) => e.name).toList();
+      {List<OpenDirResult>? paths, String? fileName}) {
+    final pathList =
+        (paths ?? state.paths).map((e) => e.name).whereNotNull().toList();
 
     if (fileName != null) pathList.add(fileName);
 
@@ -478,7 +430,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         context: _context);
 
     if (result != null) {
-      ToastUtil.showDefaultToast("修改成功");
+      Util.showDefaultToast("修改成功");
     }
 
     add(InitEvent());
@@ -493,7 +445,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     emit(state.clone()..dirChoosePaths = [paths.first]);
   }
 
-  Future<FutureOr<void>> _moveFileEvent(
+  Future<void> _moveFileEvent(
       MoveFileEvent event, Emitter<FilePageState> emit) async {
     var fileName = state.children[event.index].name;
     final paths = _getWholePathList(fileName: fileName);
@@ -508,25 +460,29 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         context: _context);
 
     if (result != null) {
-      ToastUtil.showDefaultToast("修改成功");
+      Util.showDefaultToast("修改成功");
     }
 
-    add(InitEvent());
+    await _refresh(emit);
   }
 
-  FutureOr<void> _dirChooseForward(
-      DirChooseForwardEvent event, Emitter<FilePageState> emit) {
+  Future<void> _dirChooseForward(
+      DirChooseForwardEvent event, Emitter<FilePageState> emit) async {
     final paths = state.dirChoosePaths;
 
-    if (paths.isEmpty) return null;
+    if (paths.isEmpty) return;
 
-    final child = paths.last.children?[event.index];
+    final fileName = paths.last.children?[event.index].name;
 
-    if (child == null) return null;
+    if (fileName == null || fileName.isEmpty) return;
+
+    final openDirResult = await _openDir(_getWholePathList(fileName: fileName));
+
+    if (openDirResult == null) return;
 
     final newPath = paths.toList();
 
-    newPath.add(child);
+    newPath.add(openDirResult);
 
     emit(state.clone()..dirChoosePaths = newPath);
   }
@@ -565,6 +521,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   FutureOr<void> _openFile(
       OpenFileEvent event, Emitter<FilePageState> emit) async {
     final name = state.children[event.index].name;
+    if (name == null || name.isEmpty) return;
     final mimeType = lookupMimeType(name);
     final url = await _getDownloadUrl(name);
     const channel = MethodChannel("channel");
