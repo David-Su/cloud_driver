@@ -175,7 +175,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       ..children = openFile.children ?? []);
   }
 
-  FutureOr<void> _back(BackEvent event, Emitter<FilePageState> emit) async{
+  FutureOr<void> _back(BackEvent event, Emitter<FilePageState> emit) async {
     final hadSelected = state.children
             .firstWhereOrNull((element) => element.isSelected == true) !=
         null;
@@ -235,6 +235,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
 
     await _refresh(emit);
+    _emitSelectModeState(emit);
   }
 
   Future<void> _refresh(Emitter<FilePageState> emit,
@@ -304,6 +305,11 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _refreshData(
       RefreshDataEvent event, Emitter<FilePageState> emit) async {
+    if (state.paths.isEmpty) {
+      //起码得有跟目录
+      add(InitEvent());
+      return;
+    }
     await _refresh(emit, isShowDialog: event.completer == null);
     event.completer?.complete();
   }
@@ -342,7 +348,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
           return _getWholePathStr();
         });
 
-    _refresh(emit);
+    await _refresh(emit);
   }
 
   Future<String> _getDownloadUrl(String? fileName) async {
@@ -442,28 +448,40 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     if (paths.isEmpty) return null;
 
-    emit(state.clone()..dirChoosePaths = [paths.first]);
+    emit(state.clone()..dirChoosePaths = paths);
   }
 
   Future<void> _moveFileEvent(
       MoveFileEvent event, Emitter<FilePageState> emit) async {
-    var fileName = state.children[event.index].name;
-    final paths = _getWholePathList(fileName: fileName);
-    final newPaths =
-        _getWholePathList(paths: state.dirChoosePaths, fileName: fileName);
+    final targetIndexes = event.indexes;
 
-    final result = await DioManager().doPost(
-        api: NetworkConfig.apiRenameFile,
-        data: {"paths": paths, "newPaths": newPaths},
-        transformer: (Map<String, dynamic> json) =>
-            RenameFileEntity.fromJson(json),
-        context: _context);
+    final futures = state.children
+        .whereIndexed((index, element) => targetIndexes.contains(index))
+        .map((e) => e.name)
+        .map((fileName) async {
+      final paths = _getWholePathList(fileName: fileName);
+      final newPaths =
+          _getWholePathList(paths: state.dirChoosePaths, fileName: fileName);
 
-    if (result != null) {
+      final result = await DioManager().doPost(
+          api: NetworkConfig.apiRenameFile,
+          data: {"paths": paths, "newPaths": newPaths},
+          transformer: (Map<String, dynamic> json) =>
+              RenameFileEntity.fromJson(json),
+          context: _context);
+
+      return result;
+    });
+
+    final results = await Future.wait(futures);
+
+    if (results.every(
+        (element) => element != null && element.code == NetworkConfig.codeOk)) {
       Util.showDefaultToast("修改成功");
     }
 
     await _refresh(emit);
+    await _emitSelectModeState(emit);
   }
 
   Future<void> _dirChooseForward(
@@ -476,7 +494,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
     if (fileName == null || fileName.isEmpty) return;
 
-    final openDirResult = await _openDir(_getWholePathList(fileName: fileName));
+    final openDirResult =
+        await _openDir(_getWholePathList(paths: paths, fileName: fileName));
 
     if (openDirResult == null) return;
 

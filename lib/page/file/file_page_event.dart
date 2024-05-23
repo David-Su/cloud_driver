@@ -81,7 +81,8 @@ class PlayVideoEvent extends FilePageEvent {
 class OpenFileEvent extends FilePageEvent {
   final int index;
   final BuildContext context;
-  OpenFileEvent(this.index,this.context);
+
+  OpenFileEvent(this.index, this.context);
 }
 
 //弹出进度对话框完成
@@ -127,9 +128,9 @@ class DirChooseBackwardEvent extends FilePageEvent {
 
 //去到上一目录
 class MoveFileEvent extends FilePageEvent {
-  final int index;
+  final List<int> indexes;
 
-  MoveFileEvent(this.index);
+  MoveFileEvent(this.indexes);
 }
 
 //取消选择模式事件

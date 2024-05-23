@@ -152,20 +152,7 @@ class _FilePageState extends BasePageState {
                     );
                   },
                 ),
-                BlocBuilder<FilePageBloc, FilePageState>(
-                  buildWhen: (pre, curr) {
-                    return pre.children != curr.children;
-                  },
-                  builder: (context, state) {
-                    final hadSelected =
-                        state.children.any((element) => element.isSelected);
-                    return Visibility(
-                      child: PopupMenuButton(
-                          itemBuilder: (BuildContext context) => []),
-                      visible: hadSelected,
-                    );
-                  },
-                ),
+                _buildMoreAction(),
               ],
             ),
             body: Column(
@@ -304,6 +291,196 @@ class _FilePageState extends BasePageState {
     );
   }
 
+  ///更多按钮
+  Widget _buildMoreAction() {
+    return BlocBuilder<FilePageBloc, FilePageState>(
+      buildWhen: (pre, curr) {
+        return pre.children != curr.children;
+      },
+      builder: (context, state) {
+        final hadSelected = state.children.any((element) => element.isSelected);
+        return Visibility(
+          child: PopupMenuButton(
+              itemBuilder: (BuildContext context) => [
+                    PopupMenuItem(
+                      child: Text(
+                        "移动到",
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      onTap: () {
+                        //通知bloc加载目录数据
+                        bloc.add(ShowDirChooseDialogEvent());
+                        _showMoveFileSheet(context, state);
+                      },
+                    )
+                  ]),
+          visible: hadSelected,
+        );
+      },
+    );
+  }
+
+  ///文件移动操作洁界面
+  void _showMoveFileSheet(BuildContext context, FilePageState state) {
+    showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (BuildContext context) => BlocProvider.value(
+            value: bloc,
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.8,
+              child: Column(
+                // mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  Stack(
+                    alignment: AlignmentDirectional.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: BlocBuilder<FilePageBloc, FilePageState>(
+                            buildWhen: (FilePageState previous,
+                                    FilePageState current) =>
+                                previous.dirChoosePaths !=
+                                current.dirChoosePaths,
+                            builder: (BuildContext context,
+                                    FilePageState state) =>
+                                Visibility(
+                                    maintainSize: true,
+                                    maintainAnimation: true,
+                                    maintainState: true,
+                                    visible: state.dirChoosePaths.length > 1,
+                                    child: BackButton(
+                                      color: Colors.black45,
+                                      onPressed: () {
+                                        bloc.add(DirChooseBackwardEvent());
+                                      },
+                                    ))),
+                      ),
+                      const Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          "移动到",
+                          textScaleFactor: 1.2,
+                          style: TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    ],
+                  ),
+                  SizedBox(
+                    height: 8.w,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: BlocBuilder<FilePageBloc, FilePageState>(buildWhen:
+                        (FilePageState previous, FilePageState current) {
+                      return previous.dirChoosePaths != current.dirChoosePaths;
+                    }, builder: (BuildContext context, FilePageState state) {
+                      final controller = ScrollController();
+
+                      return SingleChildScrollView(
+                        controller: controller,
+                        scrollDirection: Axis.horizontal,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 30.w, vertical: 20.w),
+                          child: BlocBuilder<FilePageBloc, FilePageState>(
+                            builder:
+                                (BuildContext context, FilePageState state) {
+                              WidgetsBinding.instance
+                                  .addPostFrameCallback((timeStamp) {
+                                controller.jumpTo(
+                                    controller.position.maxScrollExtent);
+                              });
+
+                              final paths = state.dirChoosePaths;
+                              final List<Widget> children = [];
+
+                              for (int index = 0;
+                                  index < paths.length;
+                                  index++) {
+                                children.add(Text(paths[index].name ?? "",
+                                    style: TextStyle(
+                                      color: index == paths.length - 1
+                                          ? Theme.of(context)
+                                              .unselectedWidgetColor
+                                          : Theme.of(context).primaryColorDark,
+                                    )));
+                                if (index < paths.length - 1) {
+                                  children.add(Text(
+                                    "  >  ",
+                                    style: TextStyle(
+                                        color: Theme.of(context)
+                                            .primaryColorLight),
+                                  ));
+                                }
+                              }
+                              return Row(
+                                children: children,
+                              );
+                            },
+                            buildWhen: (FilePageState previous,
+                                    FilePageState current) =>
+                                previous.dirChoosePaths != current.dirChoosePaths,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  Expanded(
+                    child: BlocBuilder<FilePageBloc, FilePageState>(
+                        buildWhen: (FilePageState previous,
+                                FilePageState current) =>
+                            previous.dirChoosePaths != current.dirChoosePaths,
+                        builder: (BuildContext context, FilePageState state) {
+                          final children = state.dirChoosePaths.last.children;
+                          return children != null
+                              ? _getVerticalFileList(children,
+                                  dirOnly: true,
+                                  onFileItemTap: (OpenDirChild file,
+                                          int index) =>
+                                      bloc.add(DirChooseForwardEvent(index)))
+                              : Container();
+                        }),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        const Spacer(),
+                        ElevatedButton(
+                          style: _getButtonStyle(),
+                          child: const Text(
+                            "移到此处",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+
+                            final children = state.children;
+                            final indexes = children
+                                .where((element) => element.isSelected)
+                                .map((e) => children.indexOf(e))
+                                .toList();
+
+                            bloc.add(MoveFileEvent(indexes));
+                          },
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )));
+  }
+
   BlocListener<FilePageBloc, FilePageState> _buildScrollPosChangeListener() {
     return BlocListener<FilePageBloc, FilePageState>(
       listener: (BuildContext context, FilePageState state) async {
@@ -405,7 +582,6 @@ class _FilePageState extends BasePageState {
                     ? _buildGridFileWidget(children)
                     : _getVerticalFileList(children,
                         scrollController: _scrollController,
-                        onSecondaryTapUp: _onSecondaryTapUp,
                         onFileItemTap: _onFileItemTap),
           );
         },
@@ -502,9 +678,6 @@ class _FilePageState extends BasePageState {
   Widget _getVerticalFileList(List<OpenDirChild> children,
       {bool dirOnly = false, //只显示文件夹
       ScrollController? scrollController,
-      Future<void> Function(OpenDirChild file, BuildContext context,
-              TapUpDetails details, int index)?
-          onSecondaryTapUp,
       void Function(OpenDirChild file, int index)? onFileItemTap}) {
     final List<OpenDirChild> items;
 
@@ -549,8 +722,6 @@ class _FilePageState extends BasePageState {
               mainAxisSize: MainAxisSize.max,
             ),
           ),
-          onSecondaryTapUp: (TapUpDetails details) async =>
-              onSecondaryTapUp?.call(file, context, details, index),
           onTap: () => onFileItemTap?.call(file, index),
         );
       },
@@ -601,220 +772,6 @@ class _FilePageState extends BasePageState {
       bloc.add(ForwardEvent(index));
     } else {
       bloc.add(OpenFileEvent(index, context));
-    }
-  }
-
-  ///右键点击处理
-  Future<void> _onSecondaryTapUp(OpenDirChild file, BuildContext context,
-      TapUpDetails details, int index) async {
-    final fileName = file.name;
-
-    if (fileName == null || fileName.isEmpty) return;
-
-    final mimeType = lookupMimeType(fileName);
-
-    print("onSecondaryTapUp: lookupMimeType->${lookupMimeType(fileName)}");
-
-    // lookupMimeType(file.name);
-
-    const idDelete = 0;
-    const idDownload = 1;
-    const idPlayVideo = 2;
-    const idRename = 3;
-    const idMove = 4;
-
-    final data = {idDelete: "删除", idRename: "重命名", idMove: "移动到"};
-
-    if (file.isDir == false) {
-      data.addAll({idDownload: "下载"});
-      if (mimeType?.startsWith("video") == true) {
-        data.addAll({idPlayVideo: "使用potPlayer播放"});
-      }
-    }
-
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    int? id = await showMenu<int>(
-        context: context,
-        items: data.entries
-            .map((e) => PopupMenuItem(
-                  child: Text(e.value),
-                  value: e.key,
-                ))
-            .toList(),
-        position: RelativeRect.fromRect(
-            Rect.fromLTRB(details.globalPosition.dx, details.globalPosition.dy,
-                details.globalPosition.dx, details.globalPosition.dy),
-            Offset.zero & overlay.size));
-
-    switch (id) {
-      case idDelete:
-        final delete = await showDialog(
-            context: context,
-            builder: (BuildContext context) => AlertDialog(
-                  title: const Text("警告"),
-                  content: Text("确认删除${file.name}吗"),
-                  actions: [
-                    TextButton(
-                      child: const Text("取消"),
-                      onPressed: () => Navigator.of(context).pop(false), //关闭对话框
-                    ),
-                    TextButton(
-                      child: const Text("删除"),
-                      onPressed: () {
-                        //执行删除操作
-                        Navigator.of(context).pop(true); //关闭对话框
-                      },
-                    ),
-                  ],
-                ));
-
-        if (delete) {}
-        break;
-      case idDownload:
-        bloc.add(DownloadFileEvent(index));
-        break;
-      case idPlayVideo:
-        bloc.add(PlayVideoEvent(PlayVideoEvent.typePotPlayer, index));
-        break;
-      case idRename:
-        final controller = TextEditingController(text: file.name);
-
-        final confirm = await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) => AlertDialog(
-                  title: const Text("请输入文件名"),
-                  content: TextField(
-                    controller: controller,
-                  ),
-                  actions: [
-                    TextButton(
-                        onPressed: () {
-                          if (controller.text == file.name) {
-                            Util.showDefaultToast("请使用新的命名");
-                          } else {
-                            Navigator.of(context).pop(true);
-                          }
-                        },
-                        child: const Text("确定")),
-                    TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text("取消"))
-                  ],
-                ));
-
-        final newName = controller.text;
-
-        if (!confirm || newName.isEmpty) {
-          return;
-        }
-
-        bloc.add(RenameEvent(index, newName));
-
-        break;
-      case idMove:
-        //通知bloc加载目录数据
-        bloc.add(ShowDirChooseDialogEvent());
-        showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            builder: (BuildContext context) => BlocProvider.value(
-                value: bloc,
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.8,
-                  child: Column(
-                    // mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        height: 8,
-                      ),
-                      Stack(
-                        alignment: AlignmentDirectional.center,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: BlocBuilder<FilePageBloc, FilePageState>(
-                                buildWhen: (FilePageState previous,
-                                        FilePageState current) =>
-                                    previous.dirChoosePaths !=
-                                    current.dirChoosePaths,
-                                builder: (BuildContext context,
-                                        FilePageState state) =>
-                                    Visibility(
-                                        maintainSize: true,
-                                        maintainAnimation: true,
-                                        maintainState: true,
-                                        visible:
-                                            state.dirChoosePaths.length > 1,
-                                        child: BackButton(
-                                          color: Colors.black45,
-                                          onPressed: () {
-                                            bloc.add(DirChooseBackwardEvent());
-                                          },
-                                        ))),
-                          ),
-                          const Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              "移动到",
-                              textScaleFactor: 1.2,
-                              style: TextStyle(
-                                  color: Colors.black54,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          )
-                        ],
-                      ),
-                      SizedBox(
-                        height: 15.w,
-                      ),
-                      _buildPathList(),
-                      SizedBox(
-                        height: 15.w,
-                      ),
-                      Expanded(
-                        child: BlocBuilder<FilePageBloc, FilePageState>(
-                            buildWhen: (FilePageState previous,
-                                    FilePageState current) =>
-                                previous.dirChoosePaths !=
-                                current.dirChoosePaths,
-                            builder:
-                                (BuildContext context, FilePageState state) {
-                              final children =
-                                  state.dirChoosePaths.last.children;
-                              return children != null
-                                  ? _getVerticalFileList(children,
-                                      dirOnly: true,
-                                      onFileItemTap:
-                                          (OpenDirChild file, int index) =>
-                                              bloc.add(
-                                                  DirChooseForwardEvent(index)))
-                                  : Container();
-                            }),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Row(
-                          children: [
-                            const Spacer(),
-                            ElevatedButton(
-                              style: _getButtonStyle(),
-                              child: const Text(
-                                "移到此处",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                bloc.add(MoveFileEvent(index));
-                              },
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )));
-        break;
     }
   }
 

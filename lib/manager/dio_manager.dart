@@ -27,7 +27,8 @@ class DioManager {
   DioManager._internal() {
     defaultDio = Dio(BaseOptions(
         baseUrl: NetworkConfig.urlBase,
-        connectTimeout: NetworkConfig.timeoutConnect));
+        connectTimeout:
+            const Duration(milliseconds: NetworkConfig.timeoutConnect)));
     defaultDio.interceptors
         .add(LogInterceptor(responseBody: true, requestBody: true));
     defaultDio.interceptors.add(MyInterceptor());
@@ -88,21 +89,29 @@ class DioManager {
         result = defaultHandle(context, baseEntity);
       }
     } catch (err) {
-      debugPrint(err.toString());
       await dialogCompleter?.future.then((value) => Navigator.of(value).pop());
 
-      result = null;
+      if (err is DioException) {
+        final msg = err.message;
+        if (msg != null && msg.isNotEmpty) {
+          Util.showDefaultToast(msg);
+        }
 
-      if (err is DioError) {
         switch (err.type) {
-          case DioErrorType.connectTimeout:
-            Util.showDefaultToast("连接超时，请重试");
+          case DioExceptionType.connectionTimeout:
+            break;
+          case DioExceptionType.sendTimeout:
+            break;
+          case DioExceptionType.receiveTimeout:
             break;
           default:
-            Util.showDefaultToast(err.message);
             break;
         }
+      } else {
+        Util.showDefaultToast("网络访问异常");
+        debugPrint(err.toString());
       }
+      result = null;
     }
 
     job.complete();
