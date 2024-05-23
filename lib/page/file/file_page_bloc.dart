@@ -13,6 +13,7 @@ import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/rename_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/model/event/event.dart';
+import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:cloud_driver/util/util.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
@@ -23,6 +24,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'file_page_event.dart';
 import 'file_page_state.dart';
+
+import 'package:share_plus/share_plus.dart';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   final BuildContext _context;
@@ -543,10 +546,10 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     if (name == null || name.isEmpty) return;
     final mimeType = lookupMimeType(name);
     final url = await _getDownloadUrl(name);
-    const channel = MethodChannel("channel");
-    await channel.invokeMethod("playVideo", {"url": url, "mimeType": mimeType});
+    // const channel = MethodChannel("channel");
+    // await channel.invokeMethod("playVideo", {"url": url, "mimeType": mimeType});
 
-    // Navigator.of(event.context)
-    //     .pushNamed("/video", arguments: VideoPageArgs(url));
+    Navigator.of(event.context)
+        .pushNamed("/video", arguments: VideoPageArgs(url));
   }
 }

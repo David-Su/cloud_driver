@@ -27,7 +27,8 @@ class _VideoPageState extends State<VideoPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as VideoPageArgs;
-    _controller = VideoPlayerController.networkUrl(Uri.parse(args.url))
+    // _controller = VideoPlayerController.networkUrl(Uri.parse("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4"))
+    _controller = VideoPlayerController.networkUrl(Uri.parse("http://devimages.apple.com/samplecode/adDemo/ad.m3u8"))
       ..initialize().then((_) {
         // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
         setState(() {});
