@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:js_interop';
 import 'dart:math';
 
 import 'package:auto_size_text/auto_size_text.dart';
@@ -17,7 +18,8 @@ import 'package:mime/mime.dart';
 import 'package:cloud_driver/page/file/base_page_state.dart';
 import 'package:cloud_driver/page/file/file_page_bloc.dart';
 import 'package:cloud_driver/page/file/file_page_event.dart';
-import 'package:cloud_driver/page/file/file_page_state.dart';
+import 'package:cloud_driver/model/state/file_page_state.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FilePage extends StatefulWidget {
   const FilePage({Key? key}) : super(key: key);
@@ -193,7 +195,17 @@ class _FilePageState extends BasePageState {
                 // previous.showUploadProgressDialog !=
                 // current.showUploadProgressDialog,
                 false,
-          )
+          ),
+          BlocListener<FilePageBloc, FilePageState>(
+            listenWhen: (previous, current) {
+              return current.openVideoPageEvent != null;
+            },
+            listener: (BuildContext context, FilePageState state) {
+              final event = state.openVideoPageEvent;
+              if (event == null) return;
+              launchUrl(Uri.parse(event.url));
+            },
+          ),
         ],
         child: PopScope(
           child: Scaffold(
@@ -592,6 +604,8 @@ class _FilePageState extends BasePageState {
   void _onFileItemTap(OpenDirChild file, int index) {
     if (file.isDir == true) {
       bloc.add(ForwardEvent(index));
+    } else {
+      bloc.add(OpenFileEvent(index, context));
     }
   }
 

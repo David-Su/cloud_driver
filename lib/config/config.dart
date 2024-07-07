@@ -46,7 +46,8 @@ class NetworkConfig {
         return "192.168.0.250:8080";
     }
     return "fqym.top:8080";
-    // return "192.168.20.90:8080";
+    // return "192.168.0.102:8080";
+    return "192.168.0.250:8080";
   }
 }
 

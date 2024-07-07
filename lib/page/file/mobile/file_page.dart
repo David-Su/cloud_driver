@@ -20,7 +20,7 @@ import 'package:mime/mime.dart';
 
 import '../file_page_bloc.dart';
 import '../file_page_event.dart';
-import '../file_page_state.dart';
+import '../../../model/state/file_page_state.dart';
 import 'package:open_file/open_file.dart';
 import 'package:collection/collection.dart';
 
@@ -55,6 +55,7 @@ class _FilePageState extends BasePageState {
       child: MultiBlocListener(
         listeners: [
           _buildScrollPosChangeListener(),
+          _buildOpenVideoPageEventListener(),
         ],
         child: PopScope(
           child: Scaffold(
@@ -425,7 +426,8 @@ class _FilePageState extends BasePageState {
                             },
                             buildWhen: (FilePageState previous,
                                     FilePageState current) =>
-                                previous.dirChoosePaths != current.dirChoosePaths,
+                                previous.dirChoosePaths !=
+                                current.dirChoosePaths,
                           ),
                         ),
                       );
@@ -495,6 +497,19 @@ class _FilePageState extends BasePageState {
       },
       listenWhen: (FilePageState previous, FilePageState current) =>
           previous.fileListPosition != current.fileListPosition,
+    );
+  }
+
+  BlocListener<FilePageBloc, FilePageState> _buildOpenVideoPageEventListener() {
+    return BlocListener<FilePageBloc, FilePageState>(
+      listener: (BuildContext context, FilePageState state) async {
+        final event = state.openVideoPageEvent;
+        if (event == null) return;
+        Navigator.of(context)
+            .pushNamed("/video", arguments: VideoPageArgs(event.url));
+      },
+      listenWhen: (FilePageState previous, FilePageState current) =>
+          current.openVideoPageEvent != null,
     );
   }
 

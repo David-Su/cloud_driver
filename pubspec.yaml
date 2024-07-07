@@ -67,6 +67,8 @@ dependencies:
 
   share_plus: ^9.0.0
 
+  chewie: ^1.8.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

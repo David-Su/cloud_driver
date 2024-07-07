@@ -19,6 +19,9 @@ class FilePageState {
   //是否弹出等待服务器dialog
   bool showWaitServerDialog = false;
 
+  //打开在线播放视频界面
+  OpenVideoPageEvent? openVideoPageEvent;
+
   //当前文件目录选择路径
   List<OpenDirResult> dirChoosePaths = [];
 
@@ -52,4 +55,10 @@ class FilePageState {
       ..dirChoosePaths = dirChoosePaths
       ..selectMode = selectMode;
   }
+}
+
+class OpenVideoPageEvent {
+  final String url;
+
+  OpenVideoPageEvent(this.url);
 }

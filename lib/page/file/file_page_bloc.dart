@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:core';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_driver/config/config.dart';
@@ -13,6 +14,7 @@ import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/rename_file_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/model/event/event.dart';
+import 'package:cloud_driver/model/state/play_video_state.dart';
 import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:cloud_driver/util/util.dart';
 import 'package:collection/collection.dart';
@@ -23,11 +25,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'file_page_event.dart';
-import 'file_page_state.dart';
+import '../../model/state/file_page_state.dart';
 
 import 'package:share_plus/share_plus.dart';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
+  static const _downloadModeDownload = 1;
+  static const _downloadModePlayOnline = 2;
+
   final BuildContext _context;
   final _platformAdapter = PlatformAdapter();
   WebSocketChannel? _webSocketChannel;
@@ -35,6 +40,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   Completer<void>? _waitServerDialogCompleter;
   StreamSubscription? _reLoginSubscription;
   bool _autoReConnWs = true;
+  final Map<String, int> pathToPosition = {};
 
   FilePageBloc(this._context) : super(FilePageState()) {
     on<InitEvent>(_init);
@@ -354,7 +360,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     await _refresh(emit);
   }
 
-  Future<String> _getDownloadUrl(String? fileName) async {
+  Future<String> _getDownloadUrl(String? fileName,
+      {int downloadMode = _downloadModeDownload}) async {
     final sp = await SharedPreferences.getInstance();
 
     final filePathsJson = json.encode(_getWholePathList(fileName: fileName));
@@ -362,7 +369,10 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final filePaths =
         const Base64Encoder.urlSafe().convert(utf8.encode(filePathsJson));
 
-    return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}?token=${sp.getString(SpConfig.keyToken)}&filePaths=$filePaths";
+    return "${NetworkConfig.urlBase}${NetworkConfig.apiDownloadFile}"
+        "?token=${sp.getString(SpConfig.keyToken)}"
+        "&filePaths=$filePaths"
+        "&downloadMode=$downloadMode";
   }
 
   //获取完整路径数组
@@ -545,11 +555,14 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final name = state.children[event.index].name;
     if (name == null || name.isEmpty) return;
     final mimeType = lookupMimeType(name);
-    final url = await _getDownloadUrl(name);
+    final url =
+        await _getDownloadUrl(name, downloadMode: _downloadModePlayOnline);
     // const channel = MethodChannel("channel");
     // await channel.invokeMethod("playVideo", {"url": url, "mimeType": mimeType});
 
-    Navigator.of(event.context)
-        .pushNamed("/video", arguments: VideoPageArgs(url));
+    emit(state.clone()..openVideoPageEvent = OpenVideoPageEvent(url));
+
+    // Navigator.of(event.context)
+    //     .pushNamed("/video", arguments: VideoPageArgs(url));
   }
 }
