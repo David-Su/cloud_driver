@@ -26,7 +26,7 @@ class PlatformAdapterImpl implements PlatformAdapter {
       required FutureOr<String> Function({String dir})
           getFileParentPath}) async {
     final files = await FilePicker.platform
-        .pickFiles(allowMultiple: true, withReadStream: true)
+        .pickFiles(allowMultiple: true, withData: false, withReadStream: true)
         .then((value) => value?.files);
 
     if (files == null) return;

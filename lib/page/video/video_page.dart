@@ -5,48 +5,54 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class VideoPage extends StatefulWidget {
-  const VideoPage({super.key});
+  final VideoPageArgs? args;
+
+  const VideoPage({super.key, this.args});
 
   @override
   State<StatefulWidget> createState() => _VideoPageState2();
 }
 
 class _VideoPageState2 extends State<VideoPage> {
-  ChewieController? _chewieController = null;
+  late final VideoPlayerController _videoPlayerController;
+  late final ChewieController _chewieController;
 
   @override
   void initState() {
     super.initState();
-
+    _videoPlayerController =
+        VideoPlayerController.networkUrl(Uri.parse(widget.args?.url ?? ""));
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController,
+      autoPlay: true,
+      looping: true,
+    );
+    _videoPlayerController.initialize().then((value) => {setState(() {})});
   }
-
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as VideoPageArgs;
-    debugPrint("url:" + args.url);
-    Future(() async {
-      final videoPlayerController =
-      VideoPlayerController.networkUrl(Uri.parse(args.url));
-      await videoPlayerController.initialize();
-      _chewieController = ChewieController(
-        videoPlayerController: videoPlayerController,
-        autoPlay: true,
-        looping: true,
-      );
-      setState(() {});
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final chewieController = _chewieController;
-    return chewieController == null
-        ? Container()
-        : Chewie(
+    return _videoPlayerController.value.isInitialized
+        ? Chewie(
             controller: chewieController,
+          )
+        : Container(
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(),
           );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _videoPlayerController.dispose();
+    _chewieController.dispose();
   }
 }
 

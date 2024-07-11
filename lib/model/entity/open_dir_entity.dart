@@ -20,10 +20,6 @@ class OpenDirResult {
   List<OpenDirChild>? children;
   int? size;
 
-  //当前列表滚动位置，非网络数据
-  @JsonKey(ignore: true)
-  double? position;
-
   OpenDirResult(this.name, this.children, this.size);
 
   factory OpenDirResult.fromJson(Map<String, dynamic> json) =>

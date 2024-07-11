@@ -40,7 +40,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   Completer<void>? _waitServerDialogCompleter;
   StreamSubscription? _reLoginSubscription;
   bool _autoReConnWs = true;
-  final Map<String, int> pathToPosition = {};
+  final Map<String, double> _pathToPosition = {};
 
   FilePageBloc(this._context) : super(FilePageState()) {
     on<InitEvent>(_init);
@@ -202,6 +202,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         paths.removeAt(paths.length - 1);
         emit(state.clone()..paths = paths);
         await _refresh(emit);
+        emit(state.clone()..fileListPosition = _pathToPosition[_currentPathKey]??0);
       }
     }
   }
@@ -303,8 +304,12 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   void _fileListScroll(FileListScrollEvent event, Emitter<FilePageState> emit) {
     debugPrint(
         "_fileListScroll _currentFile->${_currentFile?.name} position->${event.position}");
-    _currentFile?.position = event.position;
-    state.fileListPosition = event.position;
+    _pathToPosition[_currentPathKey] = event.position;
+  }
+
+  ///当前路径的标识
+  String get _currentPathKey {
+    return state.paths.map((e) => e.name).join(",");
   }
 
   OpenDirResult? get _currentFile {

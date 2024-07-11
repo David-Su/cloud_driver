@@ -50,7 +50,13 @@ class MyApp extends StatelessWidget {
               routes: {
                 "/login": (BuildContext context) => LoginPage(),
                 "/file": (BuildContext context) => const file_view.FilePage(),
-                "/video": (BuildContext context) => const VideoPage(),
+                "/video": (BuildContext context) {
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as VideoPageArgs;
+                  return VideoPage(
+                    args: args,
+                  );
+                },
               },
               builder: FToastBuilder(),
               home: LoginPage(),
