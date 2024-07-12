@@ -6,6 +6,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_driver/manager/platform/platform_adapter.dart';
 import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
+import 'package:cloud_driver/page/login/login_page.dart';
 import 'package:cloud_driver/route/PopupWindowRoute.dart';
 import 'package:cloud_driver/util/util.dart';
 import 'package:cloud_driver/widget/ExpandableFab.dart';
@@ -212,6 +213,7 @@ class _FilePageState extends BasePageState {
             appBar: AppBar(
               title: const Text("文件"),
               automaticallyImplyLeading: false,
+              actions: [_buildLogoutAction()],
             ),
             body: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -855,6 +857,26 @@ class _FilePageState extends BasePageState {
     }
     return Row(
       children: children,
+    );
+  }
+
+  Widget _buildLogoutAction() {
+    return BlocBuilder<FilePageBloc, FilePageState>(
+      buildWhen: (pre, curr) {
+        return pre.selectMode != curr.selectMode;
+      },
+      builder: (context, state) {
+        return Visibility(
+          child: IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              Navigator.of(context).popAndPushNamed("/login",
+                  arguments: LoginArgs(LoginReason.logout));
+            },
+          ),
+          visible: !state.selectMode,
+        );
+      },
     );
   }
 

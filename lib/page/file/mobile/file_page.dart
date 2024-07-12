@@ -7,6 +7,7 @@ import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/page/file/base_page_state.dart';
+import 'package:cloud_driver/page/login/login_page.dart';
 import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:cloud_driver/route/PopupWindowRoute.dart';
 import 'package:cloud_driver/util/util.dart';
@@ -68,17 +69,15 @@ class _FilePageState extends BasePageState {
                   final selectedCount = state.children
                       .where((element) => element.isSelected)
                       .length;
-                  return Container(
-                    child: Row(
-                      children: [
-                        IconButton(
-                            onPressed: () {
-                              bloc.add(CloseSelectModeEvent());
-                            },
-                            icon: const Icon(Icons.close)),
-                        Text("已选择$selectedCount项")
-                      ],
-                    ),
+                  return Row(
+                    children: [
+                      IconButton(
+                          onPressed: () {
+                            bloc.add(CloseSelectModeEvent());
+                          },
+                          icon: const Icon(Icons.close)),
+                      Text("已选择$selectedCount项")
+                    ],
                   );
                 } else {
                   return const Text("文件");
@@ -87,72 +86,9 @@ class _FilePageState extends BasePageState {
               automaticallyImplyLeading: false,
               shadowColor: Theme.of(context).colorScheme.shadow,
               actions: [
-                BlocBuilder<FilePageBloc, FilePageState>(
-                  buildWhen: (pre, curr) {
-                    return pre.children != curr.children;
-                  },
-                  builder: (context, state) {
-                    final selected =
-                        state.children.where((element) => element.isSelected);
-                    final selectedAllFile = selected.isNotEmpty &&
-                        selected.every((element) => element.isDir == false);
-                    return Visibility(
-                      child: IconButton(
-                        icon: const Icon(Icons.download_rounded),
-                        onPressed: () {},
-                      ),
-                      visible: selectedAllFile,
-                    );
-                  },
-                ),
-                BlocBuilder<FilePageBloc, FilePageState>(
-                  buildWhen: (pre, curr) {
-                    return pre.children != curr.children;
-                  },
-                  builder: (context, state) {
-                    final hadSelected =
-                        state.children.any((element) => element.isSelected);
-                    return Visibility(
-                      child: IconButton(
-                        icon: const Icon(Icons.delete_rounded),
-                        onPressed: () async {
-                          final files = state.children
-                              .where((element) => element.isSelected);
-
-                          final delete = await showDialog(
-                              context: context,
-                              builder: (BuildContext context) => AlertDialog(
-                                    title: const Text("警告"),
-                                    content: Text("确认删除这${files.length}个项目吗"),
-                                    actions: [
-                                      TextButton(
-                                        child: const Text("取消"),
-                                        onPressed: () => Navigator.of(context)
-                                            .pop(false), //关闭对话框
-                                      ),
-                                      TextButton(
-                                        child: const Text("删除"),
-                                        onPressed: () {
-                                          //执行删除操作
-                                          Navigator.of(context)
-                                              .pop(true); //关闭对话框
-                                        },
-                                      ),
-                                    ],
-                                  ));
-
-                          if (delete) {
-                            bloc.add(DeleteFileEvent(files
-                                .map((e) => e.name)
-                                .whereNotNull()
-                                .toList()));
-                          }
-                        },
-                      ),
-                      visible: hadSelected,
-                    );
-                  },
-                ),
+                _buildLogoutAction(),
+                _buildDownloadAction(),
+                _buildDeleteAction(),
                 _buildMoreAction(),
               ],
             ),
@@ -289,6 +225,95 @@ class _FilePageState extends BasePageState {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildLogoutAction() {
+    return BlocBuilder<FilePageBloc, FilePageState>(
+      buildWhen: (pre, curr) {
+        return pre.selectMode != curr.selectMode;
+      },
+      builder: (context, state) {
+        return Visibility(
+          child: IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              Navigator.of(context).popAndPushNamed("/login",
+                  arguments: LoginArgs(LoginReason.logout));
+            },
+          ),
+          visible: !state.selectMode,
+        );
+      },
+    );
+  }
+
+  ///状态栏下载action
+  BlocBuilder<FilePageBloc, FilePageState> _buildDownloadAction() {
+    return BlocBuilder<FilePageBloc, FilePageState>(
+      buildWhen: (pre, curr) {
+        return pre.children != curr.children;
+      },
+      builder: (context, state) {
+        final selected = state.children.where((element) => element.isSelected);
+        final selectedAllFile = selected.isNotEmpty &&
+            selected.every((element) => element.isDir == false);
+        return Visibility(
+          child: IconButton(
+            icon: const Icon(Icons.download_rounded),
+            onPressed: () {},
+          ),
+          visible: selectedAllFile,
+        );
+      },
+    );
+  }
+
+  ///状态栏删除action
+  BlocBuilder<FilePageBloc, FilePageState> _buildDeleteAction() {
+    return BlocBuilder<FilePageBloc, FilePageState>(
+      buildWhen: (pre, curr) {
+        return pre.children != curr.children;
+      },
+      builder: (context, state) {
+        final hadSelected = state.children.any((element) => element.isSelected);
+        return Visibility(
+          child: IconButton(
+            icon: const Icon(Icons.delete_rounded),
+            onPressed: () async {
+              final files =
+                  state.children.where((element) => element.isSelected);
+
+              final delete = await showDialog(
+                  context: context,
+                  builder: (BuildContext context) => AlertDialog(
+                        title: const Text("警告"),
+                        content: Text("确认删除这${files.length}个项目吗"),
+                        actions: [
+                          TextButton(
+                            child: const Text("取消"),
+                            onPressed: () =>
+                                Navigator.of(context).pop(false), //关闭对话框
+                          ),
+                          TextButton(
+                            child: const Text("删除"),
+                            onPressed: () {
+                              //执行删除操作
+                              Navigator.of(context).pop(true); //关闭对话框
+                            },
+                          ),
+                        ],
+                      ));
+
+              if (delete) {
+                bloc.add(DeleteFileEvent(
+                    files.map((e) => e.name).whereNotNull().toList()));
+              }
+            },
+          ),
+          visible: hadSelected,
+        );
+      },
     );
   }
 

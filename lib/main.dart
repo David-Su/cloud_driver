@@ -2,7 +2,7 @@ import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/page/file/mobile/file_page.dart'
     if (dart.library.html) 'package:cloud_driver/page/file/web/file_page.dart'
     as file_view;
-import 'package:cloud_driver/page/login_page.dart';
+import 'package:cloud_driver/page/login/login_page.dart';
 import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -48,18 +48,24 @@ class MyApp extends StatelessWidget {
               ),
               // initialRoute: "/login",
               routes: {
-                "/login": (BuildContext context) => LoginPage(),
+                "/login": (BuildContext context) {
+                  final args =
+                      ModalRoute.of(context)?.settings.arguments as LoginArgs?;
+                  return LoginPage(
+                    args: args,
+                  );
+                },
                 "/file": (BuildContext context) => const file_view.FilePage(),
                 "/video": (BuildContext context) {
                   final args = ModalRoute.of(context)?.settings.arguments
-                      as VideoPageArgs;
+                      as VideoPageArgs?;
                   return VideoPage(
                     args: args,
                   );
                 },
               },
               builder: FToastBuilder(),
-              home: LoginPage(),
+              home: LoginPage(args: LoginArgs(LoginReason.init)),
             ));
   }
 }

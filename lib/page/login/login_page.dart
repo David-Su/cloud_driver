@@ -5,54 +5,54 @@ import 'package:cloud_driver/manager/platform/platform_adapter.dart';
 import 'package:cloud_driver/model/entity/login_entity.dart';
 import 'package:cloud_driver/model/event/event.dart';
 import 'package:cloud_driver/model/global.dart';
+import 'package:cloud_driver/page/login/login_page_bloc.dart';
+import 'package:cloud_driver/page/login/login_page_event.dart';
+import 'package:cloud_driver/page/login/login_page_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../model/entity/base_entity.dart';
-import '../util/util.dart';
+import '../../model/entity/base_entity.dart';
+import '../../util/util.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  final LoginArgs? _args;
+
+  const LoginPage({super.key, LoginArgs? args}) : _args = args;
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final _platformAdapter = PlatformAdapter();
+  late final LoginPageBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = LoginPageBloc(widget._args);
+    _bloc.add(InitEvent(context));
+  }
 
   @override
   Widget build(BuildContext context) {
-    final body;
-    if (kIsWeb) {
-      body = _buildWebPage(context);
-    } else {
-      body = _buildMobilePage(context);
-    }
-    return Scaffold(
-      body: body,
-      backgroundColor: Theme.of(context).colorScheme.background,
+    return BlocProvider(
+      create: (_) => _bloc,
+      child: MultiBlocListener(
+        listeners: [_buildPopEventListener(), _buildToFilePageEventListener()],
+        child: Scaffold(
+          body: kIsWeb ? _buildWebPage(context) : _buildMobilePage(context),
+          backgroundColor: Theme.of(context).colorScheme.background,
+        ),
+      ),
     );
   }
 
   Widget _buildMobilePage(BuildContext context) {
-    final loginArgs = ModalRoute.of(context)?.settings.arguments as LoginArgs?;
-
-    final unameController = TextEditingController();
-
-    final pswController = TextEditingController();
-
-    final refreshToken = loginArgs?.refreshToken == true;
-
-    final username = Global.username;
-    print("全局用户名->${username}");
-    if (refreshToken && username != null && username.isNotEmpty == true) {
-      unameController.text = username;
-    }
-    final title;
-
-    if (refreshToken) {
-      title = "重新登录";
-    } else {
-      title = "登录云盘";
-    }
-
     return Stack(
       children: [
         SvgPicture.asset("graphics/ic_login.svg"),
@@ -67,16 +67,13 @@ class LoginPage extends StatelessWidget {
                   children: [
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                      child: _buildTitle(),
                     ),
                     SizedBox(
                       height: 60.w,
                     ),
                     TextField(
-                        controller: unameController,
+                        controller: _bloc.unameController,
                         decoration: const InputDecoration(
                           labelText: "用户名",
                           prefixIcon: Icon(Icons.person),
@@ -86,7 +83,7 @@ class LoginPage extends StatelessWidget {
                       height: 40.w,
                     ),
                     TextField(
-                        controller: pswController,
+                        controller: _bloc.pswController,
                         decoration: const InputDecoration(
                           labelText: "密码",
                           prefixIcon: Icon(Icons.password),
@@ -99,8 +96,7 @@ class LoginPage extends StatelessWidget {
                         constraints: const BoxConstraints.tightFor(
                             width: double.infinity),
                         child: FilledButton.icon(
-                          onPressed: () => _onLoginPress(refreshToken, context,
-                              unameController.text, pswController.text),
+                          onPressed: () => _bloc.add(LoginEvent(context)),
                           icon: const Icon(Icons.login),
                           label: const Text("登录"),
                         ))
@@ -114,33 +110,29 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  Widget _buildWebPage(BuildContext context) {
-    final loginArgs = ModalRoute.of(context)?.settings.arguments as LoginArgs?;
+  BlocBuilder<LoginPageBloc, LoginPageState> _buildTitle() {
+    return BlocBuilder<LoginPageBloc, LoginPageState>(
+      builder: (BuildContext context, state) {
+        return Text(
+          state.title,
+          style: Theme.of(context).textTheme.titleLarge,
+        );
+      },
+      buildWhen: (pre, cur) {
+        return pre.title != cur.title;
+      },
+    );
+  }
 
+  Widget _buildWebPage(BuildContext context) {
     final unameController = TextEditingController();
 
     final pswController = TextEditingController();
-
-    final refreshToken = loginArgs?.refreshToken == true;
 
     //登录框的宽度
     final webScreenWidth = _platformAdapter.webGetScreenSize()?.width ?? 0;
     final loginFrameWidth = webScreenWidth / 5;
     final bgWidth = webScreenWidth / 2;
-
-    final username = Global.username;
-    print("全局用户名->${username}");
-    if (refreshToken && username != null && username.isNotEmpty == true) {
-      unameController.text = username;
-    }
-
-    final title;
-
-    if (refreshToken) {
-      title = "重新登录";
-    } else {
-      title = "登录云盘";
-    }
 
     return PopScope(
       child: Stack(
@@ -165,16 +157,13 @@ class LoginPage extends StatelessWidget {
                     children: [
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
+                        child: _buildTitle(),
                       ),
                       const SizedBox(
                         height: 20,
                       ),
                       TextField(
-                          controller: unameController,
+                          controller: _bloc.unameController,
                           decoration: const InputDecoration(
                             labelText: "用户名",
                             prefixIcon: Icon(Icons.person),
@@ -184,7 +173,7 @@ class LoginPage extends StatelessWidget {
                         height: 20,
                       ),
                       TextField(
-                          controller: pswController,
+                          controller: _bloc.pswController,
                           decoration: const InputDecoration(
                             labelText: "密码",
                             prefixIcon: Icon(Icons.password),
@@ -198,11 +187,7 @@ class LoginPage extends StatelessWidget {
                           constraints: const BoxConstraints.tightFor(
                               width: double.infinity),
                           child: FilledButton.icon(
-                            onPressed: () => _onLoginPress(
-                                refreshToken,
-                                context,
-                                unameController.text,
-                                pswController.text),
+                            onPressed: () => _bloc.add(LoginEvent(context)),
                             icon: const Icon(Icons.login),
                             label: const Text("登录"),
                           ))
@@ -218,63 +203,37 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  void _onLoginPress(bool refreshToken, BuildContext context, String username,
-      String password) async {
-    var futureSp = Future(() => SharedPreferences.getInstance());
+  _buildPopEventListener() {
+    return BlocListener<LoginPageBloc, LoginPageState>(
+      listener: (BuildContext context, LoginPageState state) {
+        Navigator.of(context).pop();
+      },
+      listenWhen: (pre, cur) {
+        return cur.popEvent != null;
+      },
+    );
+  }
 
-    var futureLogin = DioManager().doPost(
-        api: NetworkConfig.apiLogin,
-        data: {"username": username, "password": password},
-        transformer: (json) => LoginEntity.fromJson(json),
-        context: context,
-        interceptor: (BaseEntity<LoginResult> baseEntity,
-            DefaultHandle<LoginResult> defaultHandler) {
-          switch (baseEntity.code) {
-            case NetworkConfig.codeOk:
-              return baseEntity;
-            default:
-              Util.showDefaultToast(baseEntity.message);
-              break;
-          }
-        });
-
-    await Future.wait([futureSp, futureLogin]).then((value) {
-      LoginResult? result = (value[1] as LoginEntity?)?.result;
-
-      if (result == null) return;
-
-      SharedPreferences sp = value[0] as SharedPreferences;
-
-      sp.setString(SpConfig.keyToken, result.token);
-
-      print("本地token->${sp.getString(SpConfig.keyToken)}");
-    });
-
-    final values = await Future.wait([futureSp, futureLogin]);
-
-    SharedPreferences sp = values[0] as SharedPreferences;
-
-    LoginResult? result = (values[1] as LoginEntity?)?.result;
-
-    if (result == null) return;
-
-    sp.setString(SpConfig.keyToken, result.token);
-
-    Global.username = username;
-
-    print("保存username->${Global.username}");
-
-    if (refreshToken) {
-      EventBusManager.eventBus.fire(ReLoginEvent());
-      Navigator.of(context).pop();
-    } else {
-      Navigator.of(context).popAndPushNamed("/file");
-    }
+  _buildToFilePageEventListener() {
+    return BlocListener<LoginPageBloc, LoginPageState>(
+      listener: (BuildContext context, LoginPageState state) {
+        Navigator.of(context).popAndPushNamed("/file");
+      },
+      listenWhen: (pre, cur) {
+        return cur.toFilePageEvent != null;
+      },
+    );
   }
 }
 
 class LoginArgs {
-  final bool refreshToken;
+  final LoginReason loginReason;
 
-  LoginArgs(this.refreshToken);
+  LoginArgs(this.loginReason);
+}
+
+enum LoginReason {
+  init,
+  refreshToken,
+  logout,
 }

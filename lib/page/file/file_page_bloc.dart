@@ -202,7 +202,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         paths.removeAt(paths.length - 1);
         emit(state.clone()..paths = paths);
         await _refresh(emit);
-        emit(state.clone()..fileListPosition = _pathToPosition[_currentPathKey]??0);
+        emit(state.clone()
+          ..fileListPosition = _pathToPosition[_currentPathKey] ?? 0);
       }
     }
   }
@@ -250,7 +251,8 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _refresh(Emitter<FilePageState> emit,
       {bool isShowDialog = true}) async {
-    final openFile = await _openDir(_getWholePathList());
+    final openFile =
+        await _openDir(_getWholePathList(), isShowDialog: isShowDialog);
 
     if (openFile == null) return;
 

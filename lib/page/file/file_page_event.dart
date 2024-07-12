@@ -135,3 +135,4 @@ class MoveFileEvent extends FilePageEvent {
 
 //取消选择模式事件
 class CloseSelectModeEvent extends FilePageEvent {}
+

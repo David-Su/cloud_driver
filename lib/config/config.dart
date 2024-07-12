@@ -56,4 +56,5 @@ class SpConfig {
 
   static const String keyToken = "key_token";
   static const String keyUsername = "key_username";
+  static const String keyPsw = "key_psw";
 }

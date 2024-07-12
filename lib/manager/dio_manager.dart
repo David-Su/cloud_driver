@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/main.dart';
 import 'package:cloud_driver/model/entity/base_entity.dart';
-import 'package:cloud_driver/page/login_page.dart';
+import 'package:cloud_driver/page/login/login_page.dart';
 import 'package:cloud_driver/util/util.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -130,7 +130,7 @@ class DioManager {
       case NetworkConfig.codeOk:
         return baseEntity;
       case NetworkConfig.codeTokenTimeOut:
-        Navigator.of(context).pushNamed("/login", arguments: LoginArgs(true));
+        Navigator.of(context).pushNamed("/login", arguments: LoginArgs(LoginReason.refreshToken));
         break;
       case NetworkConfig.codeUnOrPwError:
         break;
