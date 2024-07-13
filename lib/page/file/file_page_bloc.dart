@@ -221,7 +221,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
             CreateDirEntity.fromJson(json),
         context: _context);
 
-    if (Util.handleBaseEntity(createDirEntity) == null) return;
+    Util.handleBaseEntity(createDirEntity);
+
+    if (createDirEntity?.code != NetworkConfig.codeOk) return;
 
     if (emit != null) {
       await _refresh(emit);
