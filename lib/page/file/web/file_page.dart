@@ -544,12 +544,13 @@ class _FilePageState extends BasePageState {
                   size: 29,
                 ),
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 3)),
-                Text(file.name ?? "",
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                    )),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    file.name ?? "",
+                    overflow: TextOverflow.fade,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
                 Text(file.displaySize),
               ],
               mainAxisSize: MainAxisSize.max,
@@ -800,15 +801,13 @@ class _FilePageState extends BasePageState {
                             builder:
                                 (BuildContext context, FilePageState state) {
                               final children =
-                                  state.dirChoosePaths.last.children;
-                              return children != null
-                                  ? _getVerticalFileList(children,
-                                      dirOnly: true,
-                                      onFileItemTap:
-                                          (OpenDirChild file, int index) =>
-                                              bloc.add(
-                                                  DirChooseForwardEvent(index)))
-                                  : Container();
+                                  state.dirChoosePaths.lastOrNull?.children ??
+                                      [];
+                              return _getVerticalFileList(children,
+                                  dirOnly: true,
+                                  onFileItemTap: (OpenDirChild file,
+                                          int index) =>
+                                      bloc.add(DirChooseForwardEvent(index)));
                             }),
                       ),
                       Padding(

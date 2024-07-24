@@ -27,7 +27,7 @@ class Util {
     );
   }
 
-  static T? handleBaseEntity<T>(BaseEntity<T?>? baseEntity){
+  static T? getBaseEntityResultOrNull<T>(BaseEntity<T?>? baseEntity){
 
     if(baseEntity == null) {
       return null;

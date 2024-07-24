@@ -45,8 +45,22 @@ class _LoginPageState extends State<LoginPage> {
       child: MultiBlocListener(
         listeners: [_buildPopEventListener(), _buildToFilePageEventListener()],
         child: Scaffold(
-          body: kIsWeb ? _buildWebPage(context) : _buildMobilePage(context),
-          backgroundColor: Theme.of(context).colorScheme.background,
+          body: BlocBuilder<LoginPageBloc, LoginPageState>(
+            builder: (BuildContext context, LoginPageState state) {
+              if (state.showLoginUi) {
+                return kIsWeb ? _buildWebPage(context) : _buildMobilePage(
+                    context);
+              } else {
+                return Container(alignment: Alignment.center, child:Image.asset("graphics/ic_launcher.png"),);
+              }
+            },
+            buildWhen: (pre, cur) {
+              return pre.showLoginUi != cur.showLoginUi;
+            },),
+          backgroundColor: Theme
+              .of(context)
+              .colorScheme
+              .background,
         ),
       ),
     );
@@ -115,7 +129,10 @@ class _LoginPageState extends State<LoginPage> {
       builder: (BuildContext context, state) {
         return Text(
           state.title,
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme
+              .of(context)
+              .textTheme
+              .titleLarge,
         );
       },
       buildWhen: (pre, cur) {
@@ -125,12 +142,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildWebPage(BuildContext context) {
-    final unameController = TextEditingController();
-
-    final pswController = TextEditingController();
 
     //登录框的宽度
-    final webScreenWidth = _platformAdapter.webGetScreenSize()?.width ?? 0;
+    final webScreenWidth = _platformAdapter
+        .webGetScreenSize()
+        ?.width ?? 0;
     final loginFrameWidth = webScreenWidth / 5;
     final bgWidth = webScreenWidth / 2;
 
@@ -150,7 +166,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Card(
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                   width: loginFrameWidth,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

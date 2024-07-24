@@ -32,6 +32,7 @@ import 'package:share_plus/share_plus.dart';
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   static const _downloadModeDownload = 1;
   static const _downloadModePlayOnline = 2;
+  static const _rootPathStub = ".";
 
   final BuildContext _context;
   final _platformAdapter = PlatformAdapter();
@@ -58,10 +59,10 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     on<SwitchViewEvent>(_switchView);
     on<UpdateTasksEvent>(_updateTasks);
     on<RenameEvent>(_rename);
-    on<DirChooseForwardEvent>(_dirChooseForward);
     on<ShowDirChooseDialogEvent>(_showDirChooseDialog);
-    on<MoveFileEvent>(_moveFileEvent);
+    on<DirChooseForwardEvent>(_dirChooseForward);
     on<DirChooseBackwardEvent>(_dirChooseBackward);
+    on<MoveFileEvent>(_moveFileEvent);
     on<SelectEvent>(_selectEvent);
     on<CloseSelectModeEvent>(_closeSelectModeEvent);
     on<OpenFileEvent>(_openFile);
@@ -175,7 +176,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   }
 
   Future<void> _init(InitEvent event, Emitter<FilePageState> emit) async {
-    final openFile = await _openDir(["."]);
+    final openFile = await _openDir([_rootPathStub]);
 
     if (openFile == null) return;
 
@@ -220,8 +221,6 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         transformer: (Map<String, dynamic> json) =>
             CreateDirEntity.fromJson(json),
         context: _context);
-
-    Util.handleBaseEntity(createDirEntity);
 
     if (createDirEntity?.code != NetworkConfig.codeOk) return;
 
@@ -270,7 +269,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         context: _context,
         isShowDialog: isShowDialog);
 
-    final openFile = Util.handleBaseEntity(openDirEntity);
+    final openFile = Util.getBaseEntityResultOrNull(openDirEntity);
 
     if (openFile == null) return null;
 
@@ -464,13 +463,13 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     add(InitEvent());
   }
 
-  FutureOr<void> _showDirChooseDialog(
-      ShowDirChooseDialogEvent event, Emitter<FilePageState> emit) {
-    final paths = state.paths;
+  Future<FutureOr<void>> _showDirChooseDialog(
+      ShowDirChooseDialogEvent event, Emitter<FilePageState> emit) async {
+    final openFile = await _openDir([_rootPathStub]);
 
-    if (paths.isEmpty) return null;
+    if (openFile == null) return null;
 
-    emit(state.clone()..dirChoosePaths = paths);
+    emit(state.clone()..dirChoosePaths = [openFile]);
   }
 
   Future<void> _moveFileEvent(

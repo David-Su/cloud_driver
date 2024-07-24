@@ -467,14 +467,12 @@ class _FilePageState extends BasePageState {
                                 FilePageState current) =>
                             previous.dirChoosePaths != current.dirChoosePaths,
                         builder: (BuildContext context, FilePageState state) {
-                          final children = state.dirChoosePaths.last.children;
-                          return children != null
-                              ? _getVerticalFileList(children,
-                                  dirOnly: true,
-                                  onFileItemTap: (OpenDirChild file,
-                                          int index) =>
-                                      bloc.add(DirChooseForwardEvent(index)))
-                              : Container();
+                          final children =
+                              state.dirChoosePaths.lastOrNull?.children ?? [];
+                          return _getVerticalFileList(children,
+                              dirOnly: true,
+                              onFileItemTap: (OpenDirChild file, int index) =>
+                                  bloc.add(DirChooseForwardEvent(index)));
                         }),
                   ),
                   Padding(
@@ -482,11 +480,14 @@ class _FilePageState extends BasePageState {
                     child: Row(
                       children: [
                         const Spacer(),
-                        ElevatedButton(
-                          style: _getButtonStyle(),
-                          child: const Text(
+                        FilledButton(
+                          // style: _getButtonStyle(),
+                          child: Text(
                             "移到此处",
-                            style: TextStyle(color: Colors.white),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: Colors.white),
                           ),
                           onPressed: () {
                             Navigator.of(context).pop();
@@ -605,8 +606,8 @@ class _FilePageState extends BasePageState {
 
   ButtonStyle _getButtonStyle() {
     return ButtonStyle(
-        shape: MaterialStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
+        shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.w))));
   }
 
   ///当前目录的文件列表
@@ -751,12 +752,13 @@ class _FilePageState extends BasePageState {
                   size: 29,
                 ),
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 3)),
-                Text(file.name ?? "",
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                    )),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    file.name ?? "",
+                    overflow: TextOverflow.fade,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
                 Text(file.displaySize),
               ],
               mainAxisSize: MainAxisSize.max,

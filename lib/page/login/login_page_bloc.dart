@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/manager/dio_manager.dart';
@@ -28,33 +29,77 @@ class LoginPageBloc extends Bloc<LoginPageEvent, LoginPageState> {
   }
 
   FutureOr<void> _login(LoginEvent event, Emitter<LoginPageState> emit) async {
+    await _loginInternal(event.context, true, emit);
+  }
+
+  FutureOr<void> _init(InitEvent event, Emitter<LoginPageState> emit) async {
+    emit(state.clone()..showLoginUi = false);
+    final loginResult = _args?.loginReason ?? LoginReason.init;
+    if (loginResult == LoginReason.refreshToken) {
+      emit(state.clone()..title = "重新登陆");
+    } else {
+      emit(state.clone()..title = "登陆云盘");
+    }
+    final sp = await SharedPreferences.getInstance();
+    switch (loginResult) {
+      case LoginReason.init:
+      case LoginReason.refreshToken:
+        final localUsername = sp.getString(SpConfig.keyUsername);
+        final localPsw = sp.getString(SpConfig.keyPsw);
+
+        unameController.text = localUsername ?? "";
+        pswController.text = localPsw ?? "";
+
+        final autoLoginSuccess = localUsername?.isNotEmpty == true &&
+            localPsw?.isNotEmpty == true &&
+            await _loginInternal(event.context, false, emit);
+
+        emit(state.clone()..showLoginUi = !autoLoginSuccess);
+
+        break;
+      case LoginReason.logout:
+        await Future.wait(
+            [sp.remove(SpConfig.keyUsername), sp.remove(SpConfig.keyPsw)]);
+        unameController.text = "";
+        pswController.text = "";
+
+        emit(state.clone()..showLoginUi = true);
+        break;
+    }
+  }
+
+  FutureOr<bool> _loginInternal(BuildContext context, bool isShowDialog,
+      Emitter<LoginPageState> emit) async {
     final username = unameController.value.text;
     final password = pswController.value.text;
-    final futureSp = Future(() => SharedPreferences.getInstance());
-    final futureLogin = DioManager().doPost(
-        api: NetworkConfig.apiLogin,
-        data: {"username": username, "password": password},
-        transformer: (json) => LoginEntity.fromJson(json),
-        context: event.context,
-        interceptor: (BaseEntity<LoginResult> baseEntity,
-            DefaultHandle<LoginResult> defaultHandler) {
-          switch (baseEntity.code) {
-            case NetworkConfig.codeOk:
-              return baseEntity;
-            default:
-              Util.showDefaultToast(baseEntity.message);
-              break;
-          }
-          return null;
-        });
 
-    final values = await Future.wait([futureSp, futureLogin]);
+    final futures = await Future.wait([
+      SharedPreferences.getInstance(),
+      DioManager().doPost(
+          api: NetworkConfig.apiLogin,
+          data: {"username": username, "password": password},
+          transformer: (json) => LoginEntity.fromJson(json),
+          context: context,
+          isShowDialog: isShowDialog,
+          interceptor: (BaseEntity<LoginResult> baseEntity,
+              DefaultHandle<LoginResult> defaultHandler) {
+            switch (baseEntity.code) {
+              case NetworkConfig.codeOk:
+                return baseEntity;
+              default:
+                Util.showDefaultToast(baseEntity.message);
+                break;
+            }
+            return null;
+          })
+    ]);
 
-    final sp = values[0] as SharedPreferences;
+    final sp = futures[0] as SharedPreferences;
 
-    final result = (values[1] as LoginEntity?)?.result;
+    final result =
+        Util.getBaseEntityResultOrNull(futures[1] as BaseEntity<LoginResult?>?);
 
-    if (result == null) return;
+    if (result == null) return false;
 
     sp.setString(SpConfig.keyToken, result.token);
     sp.setString(SpConfig.keyUsername, username);
@@ -72,35 +117,7 @@ class LoginPageBloc extends Bloc<LoginPageEvent, LoginPageState> {
     } else {
       emit(state.clone()..toFilePageEvent = Object());
     }
-  }
 
-  FutureOr<void> _init(InitEvent event, Emitter<LoginPageState> emit) async {
-    emit(state.clone()..showLoginUi = false);
-    final loginResult = _args?.loginReason ?? LoginReason.init;
-    if (loginResult == LoginReason.refreshToken) {
-      emit(state.clone()..title = "重新登陆");
-    } else {
-      emit(state.clone()..title = "登陆云盘");
-    }
-    final sp = await SharedPreferences.getInstance();
-    switch (loginResult) {
-      case LoginReason.init:
-      case LoginReason.refreshToken:
-        final localUsername = sp.getString(SpConfig.keyUsername);
-        final localPsw = sp.getString(SpConfig.keyPsw);
-        if (localUsername?.isNotEmpty == true && localPsw?.isNotEmpty == true) {
-          add(LoginEvent(event.context));
-        }
-        unameController.text = localUsername ?? "";
-        pswController.text = localPsw ?? "";
-        break;
-      case LoginReason.logout:
-        Future.wait(
-            [sp.remove(SpConfig.keyUsername), sp.remove(SpConfig.keyPsw)]);
-        unameController.text = "";
-        pswController.text = "";
-        emit(state.clone()..showLoginUi = true);
-        break;
-    }
+    return true;
   }
 }
