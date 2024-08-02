@@ -633,7 +633,7 @@ class _FilePageState extends BasePageState {
 
   Widget _buildGridFileWidget(List<OpenDirChild> children) {
     return GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: const ClampingScrollPhysics(),
         itemCount: children.length,
         controller: _scrollController,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
