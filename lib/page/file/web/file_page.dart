@@ -279,82 +279,44 @@ class _FilePageState extends BasePageState {
                             icon: const Icon(Icons.create_new_folder),
                             label: const Text("新建文件夹")),
                         const Spacer(),
-                        IconButton(
-                            key: _taskButtonKey,
-                            onPressed: () {
-                              if (bloc.state.updateTasks.isEmpty) {
-                                Util.showDefaultToast("没有任务");
-                                return;
-                              }
+                        BlocBuilder<FilePageBloc, FilePageState>(
+                          buildWhen: (pre, cur) {
+                            final preHadTask = pre.updateTasks.isNotEmpty;
+                            final curHadTask = cur.updateTasks.isNotEmpty;
+                            return preHadTask != curHadTask;
+                          },
+                          builder: (BuildContext context, FilePageState state) {
+                            final curHadTask = state.updateTasks.isNotEmpty;
+                            final button = IconButton(
+                                key: _taskButtonKey,
+                                onPressed: () {
+                                  if (bloc.state.updateTasks.isEmpty) {
+                                    Util.showDefaultToast("没有任务");
 
-                              final renderOjb = _taskButtonKey.currentContext
-                                  ?.findRenderObject();
+                                    return;
+                                  }
+                                  _popupUploadDialog(context);
+                                },
+                                icon: Icon(
+                                  Icons.backup,
+                                  color: curHadTask
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.black45,
+                                ));
 
-                              if (renderOjb is RenderBox) {
-                                final offset =
-                                    renderOjb.localToGlobal(Offset.zero);
-
-                                final right =
-                                    MediaQuery.of(context).size.width -
-                                        offset.dx -
-                                        renderOjb.size.width;
-                                final top = offset.dy + renderOjb.size.height;
-
-                                Navigator.push(
-                                    context,
-                                    PopupWindowRoute((BuildContext
-                                            routeContext) =>
-                                        PopupWindow(
-                                          BlocProvider.value(
-                                            value: bloc,
-                                            child: BlocBuilder<FilePageBloc,
-                                                    FilePageState>(
-                                                buildWhen:
-                                                    (FilePageState previous,
-                                                            FilePageState
-                                                                current) =>
-                                                        previous.updateTasks !=
-                                                        current.updateTasks,
-                                                builder: (BuildContext context,
-                                                    FilePageState state) {
-                                                  final tasks =
-                                                      state.updateTasks;
-
-                                                  return Card(
-                                                    child: SizedBox(
-                                                        width: MediaQuery.of(
-                                                                    context)
-                                                                .size
-                                                                .width /
-                                                            3,
-                                                        child: tasks.isNotEmpty
-                                                            ? _buildTaskList(
-                                                                state
-                                                                    .updateTasks)
-                                                            : const Center(
-                                                                child: Padding(
-                                                                  padding: EdgeInsets
-                                                                      .symmetric(
-                                                                          vertical:
-                                                                              5),
-                                                                  child: Text(
-                                                                      "没有进行中的任务"),
-                                                                ),
-                                                              )),
-                                                  );
-                                                }),
-                                          ),
-                                          alignment:
-                                              AlignmentDirectional.topEnd,
-                                          right: right,
-                                          top: top,
-                                        )));
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.backup,
-                              color: Colors.black45,
-                            )),
+                            return curHadTask
+                                ? Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        strokeWidth: 4.w,
+                                      ),
+                                      button,
+                                    ],
+                                  )
+                                : button;
+                          },
+                        ),
                         BlocBuilder<FilePageBloc, FilePageState>(
                           buildWhen:
                               (FilePageState previous, FilePageState current) =>
@@ -412,6 +374,50 @@ class _FilePageState extends BasePageState {
         ),
       ),
     );
+  }
+
+  void _popupUploadDialog(BuildContext context) {
+    final renderOjb = _taskButtonKey.currentContext?.findRenderObject();
+
+    if (renderOjb is RenderBox) {
+      final offset = renderOjb.localToGlobal(Offset.zero);
+
+      final right =
+          MediaQuery.of(context).size.width - offset.dx - renderOjb.size.width;
+      final top = offset.dy + renderOjb.size.height;
+
+      Navigator.push(
+          context,
+          PopupWindowRoute((BuildContext routeContext) => PopupWindow(
+                BlocProvider.value(
+                  value: bloc,
+                  child: BlocBuilder<FilePageBloc, FilePageState>(
+                      buildWhen:
+                          (FilePageState previous, FilePageState current) =>
+                              previous.updateTasks != current.updateTasks,
+                      builder: (BuildContext context, FilePageState state) {
+                        final tasks = state.updateTasks;
+
+                        return Card(
+                          child: SizedBox(
+                              width: MediaQuery.of(context).size.width / 3,
+                              child: tasks.isNotEmpty
+                                  ? _buildTaskList(state.updateTasks)
+                                  : const Center(
+                                      child: Padding(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 5),
+                                        child: Text("没有进行中的任务"),
+                                      ),
+                                    )),
+                        );
+                      }),
+                ),
+                alignment: AlignmentDirectional.topEnd,
+                right: right,
+                top: top,
+              )));
+    }
   }
 
   ButtonStyle _getButtonStyle() {

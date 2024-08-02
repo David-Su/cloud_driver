@@ -61,28 +61,8 @@ class _FilePageState extends BasePageState {
         child: PopScope(
           child: Scaffold(
             appBar: AppBar(
-              title: BlocBuilder<FilePageBloc, FilePageState>(
-                  buildWhen: (pre, curr) {
-                return pre.selectMode != curr.selectMode;
-              }, builder: (context, state) {
-                if (state.selectMode) {
-                  final selectedCount = state.children
-                      .where((element) => element.isSelected)
-                      .length;
-                  return Row(
-                    children: [
-                      IconButton(
-                          onPressed: () {
-                            bloc.add(CloseSelectModeEvent());
-                          },
-                          icon: const Icon(Icons.close)),
-                      Text("已选择$selectedCount项")
-                    ],
-                  );
-                } else {
-                  return const Text("文件");
-                }
-              }),
+              title: _buildAppBarTitle(),
+              titleSpacing: 0,
               automaticallyImplyLeading: false,
               shadowColor: Theme.of(context).colorScheme.shadow,
               actions: [
@@ -99,93 +79,42 @@ class _FilePageState extends BasePageState {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    IconButton(
-                        key: _taskButtonKey,
-                        onPressed: () {
-                          if (bloc.state.updateTasks.isEmpty) {
-                            Util.showDefaultToast("没有任务");
-                            return;
-                          }
+                    BlocBuilder<FilePageBloc, FilePageState>(
+                      buildWhen: (pre, cur) {
+                        final preHadTask = pre.updateTasks.isNotEmpty;
+                        final curHadTask = cur.updateTasks.isNotEmpty;
+                        return preHadTask != curHadTask;
+                      },
+                      builder: (BuildContext context, FilePageState state) {
+                        final curHadTask = state.updateTasks.isNotEmpty;
+                        final button = IconButton(
+                            key: _taskButtonKey,
+                            onPressed: () {
+                              if (bloc.state.updateTasks.isEmpty) {
+                                Util.showDefaultToast("没有任务");
 
-                          final renderOjb =
-                              _taskButtonKey.currentContext?.findRenderObject();
+                                return;
+                              }
+                              _popupUploadDialog(context);
+                            },
+                            icon: Icon(
+                              Icons.backup,
+                              color: curHadTask
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.black45,
+                            ));
 
-                          if (renderOjb is RenderBox) {
-                            final offset = renderOjb.localToGlobal(Offset.zero);
-
-                            final right = MediaQuery.of(context).size.width -
-                                offset.dx -
-                                renderOjb.size.width;
-                            final top = offset.dy + renderOjb.size.height;
-
-                            Navigator.push(
-                                context,
-                                PopupWindowRoute((BuildContext routeContext) =>
-                                    PopupWindow(
-                                      BlocProvider.value(
-                                        value: bloc,
-                                        child: BlocBuilder<FilePageBloc,
-                                                FilePageState>(
-                                            buildWhen: (FilePageState previous,
-                                                    FilePageState current) =>
-                                                previous.updateTasks !=
-                                                current.updateTasks,
-                                            builder: (BuildContext context,
-                                                FilePageState state) {
-                                              final tasks = state.updateTasks;
-
-                                              return tasks.isNotEmpty
-                                                  ? Container(
-                                                      constraints: BoxConstraints(
-                                                          maxWidth: MediaQuery.of(
-                                                                      context)
-                                                                  .size
-                                                                  .width /
-                                                              2),
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                              vertical: 20.w,
-                                                              horizontal: 25.w),
-                                                      decoration: BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      30.w),
-                                                          color: Colors.white),
-                                                      child: _buildTaskList(
-                                                          state.updateTasks),
-                                                    )
-                                                  : Container(
-                                                      decoration: BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      30.w),
-                                                          color: Colors.white),
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                              vertical: 20.w,
-                                                              horizontal: 35.w),
-                                                      child: Text(
-                                                        "没有进行中的任务",
-                                                        style: Theme.of(context)
-                                                            .textTheme
-                                                            .bodyMedium,
-                                                      ),
-                                                    );
-                                            }),
-                                      ),
-                                      key: _keyProgressDialog,
-                                      alignment: AlignmentDirectional.topEnd,
-                                      right: right,
-                                      top: top,
-                                    )));
-                          }
-                        },
-                        icon: const Icon(
-                          Icons.backup,
-                          color: Colors.black45,
-                        )),
+                        return curHadTask
+                            ? Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CircularProgressIndicator(strokeWidth: 6.w,),
+                                  button,
+                                ],
+                              )
+                            : button;
+                      },
+                    ),
                     BlocBuilder<FilePageBloc, FilePageState>(
                       buildWhen:
                           (FilePageState previous, FilePageState current) =>
@@ -226,6 +155,106 @@ class _FilePageState extends BasePageState {
         ),
       ),
     );
+  }
+
+  void _popupUploadDialog(BuildContext context) {
+    final renderOjb = _taskButtonKey.currentContext?.findRenderObject();
+
+    if (renderOjb is RenderBox) {
+      final offset = renderOjb.localToGlobal(Offset.zero);
+
+      final right =
+          MediaQuery.of(context).size.width - offset.dx - renderOjb.size.width;
+      final top = offset.dy + renderOjb.size.height;
+
+      Navigator.push(
+          context,
+          PopupWindowRoute((BuildContext routeContext) => PopupWindow(
+                BlocProvider.value(
+                  value: bloc,
+                  child: BlocBuilder<FilePageBloc, FilePageState>(
+                      buildWhen:
+                          (FilePageState previous, FilePageState current) =>
+                              previous.updateTasks != current.updateTasks,
+                      builder: (BuildContext context, FilePageState state) {
+                        final tasks = state.updateTasks;
+
+                        return tasks.isNotEmpty
+                            ? Container(
+                                constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width / 2),
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 20.w, horizontal: 25.w),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30.w),
+                                    color: Colors.white),
+                                child: _buildTaskList(state.updateTasks),
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30.w),
+                                    color: Colors.white),
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 20.w, horizontal: 35.w),
+                                child: Text(
+                                  "没有进行中的任务",
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              );
+                      }),
+                ),
+                key: _keyProgressDialog,
+                alignment: AlignmentDirectional.topEnd,
+                right: right,
+                top: top,
+              )));
+    }
+  }
+
+  BlocBuilder<FilePageBloc, FilePageState> _buildAppBarTitle() {
+    return BlocBuilder<FilePageBloc, FilePageState>(buildWhen: (pre, curr) {
+      return pre.selectMode != curr.selectMode;
+    }, builder: (context, state) {
+      if (state.selectMode) {
+        final selectedCount =
+            state.children.where((element) => element.isSelected).length;
+        return Row(
+          children: [
+            IconButton(
+                onPressed: () {
+                  bloc.add(CloseSelectModeEvent());
+                },
+                icon: const Icon(Icons.close)),
+            Text("已选择$selectedCount项")
+          ],
+        );
+      } else {
+        return Row(
+          children: [
+            BlocBuilder<FilePageBloc, FilePageState>(
+              buildWhen: (pre, cur) {
+                return pre.paths != cur.paths;
+              },
+              builder: (BuildContext context, FilePageState state) {
+                return Visibility(
+                    replacement: SizedBox(
+                      width: 50.w,
+                    ),
+                    child: IconButton(
+                        onPressed: () => bloc.add(BackEvent()),
+                        icon: const Icon(Icons.arrow_back)),
+                    visible: state.paths.length > 1);
+              },
+            ),
+            SizedBox(
+              width: 5.w,
+            ),
+            const Text("文件"),
+          ],
+        );
+      }
+    });
   }
 
   Widget _buildLogoutAction() {
