@@ -95,6 +95,8 @@ dev_dependencies:
 
   mime: ^1.0.5
 
+  workmanager: ^0.5.2
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

@@ -1,4 +1,5 @@
 import 'package:cloud_driver/config/config.dart';
+import 'package:cloud_driver/manager/work_manager.dart' as work_manager;
 import 'package:cloud_driver/page/file/mobile/file_page.dart'
     if (dart.library.html) 'package:cloud_driver/page/file/web/file_page.dart'
     as file_view;
@@ -9,8 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+
 void main() {
   debugPrint("main() 当前渠道->${ChannelConfig.channel}");
+  work_manager.init();
   runApp(const MyApp());
 }
 

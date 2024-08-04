@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
+import 'dart:isolate';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_driver/config/config.dart';
@@ -26,8 +27,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'file_page_event.dart';
 import '../../model/state/file_page_state.dart';
-
-import 'package:share_plus/share_plus.dart';
+import 'package:cloud_driver/manager/work_manager.dart' as work_manager;
+import 'package:workmanager/workmanager.dart';
 
 class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   static const _downloadModeDownload = 1;
@@ -361,16 +362,32 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _uploadFile(
       UploadFileEvent uploadFileEvent, Emitter<FilePageState> emit) async {
-    await _platformAdapter.uploadFile(
-        isDir: uploadFileEvent.dir,
-        getFileParentPath: ({String? dir}) async {
-          if (uploadFileEvent.dir && dir != null && dir.isNotEmpty) {
-            await _createDir(CreateDirEvent(dir), emit);
-            return "${_getWholePathStr()},$dir";
-          }
-          return _getWholePathStr();
-        });
+    final completer = Completer();
+    final receivePort = ReceivePort();
+    receivePort.listen((mesage){
+      completer.complete();
+      receivePort.close();
+    });
+    Workmanager().registerOneOffTask(
+      work_manager.uploadTaskKey,
+      work_manager.uploadTaskKey,
+      inputData: <String, dynamic>{
+        'isDir': uploadFileEvent.dir,
+        'fileParentPath': _getWholePathStr(),
+        'sendPort': receivePort.sendPort,
+      },
+    );
 
+    // await _platformAdapter.uploadFile(
+    //     isDir: uploadFileEvent.dir,
+    //     getFileParentPath: ({String? dir}) async {
+    //       if (uploadFileEvent.dir && dir != null && dir.isNotEmpty) {
+    //         await _createDir(CreateDirEvent(dir), emit);
+    //         return "${_getWholePathStr()},$dir";
+    //       }
+    //       return _getWholePathStr();
+    //     });
+    await completer.future;
     await _refresh(emit);
   }
 
