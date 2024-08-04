@@ -73,10 +73,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       //监听事件
       _reLoginSubscription =
           EventBusManager.eventBus.on<ReLoginEvent>().listen((event) async {
-        final formerAutoReConnWs = _autoReConnWs;
-        _autoReConnWs = false;
         await _wsConn();
-        _autoReConnWs = formerAutoReConnWs;
       });
     });
   }
@@ -91,6 +88,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
         "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
 
     await channel.ready;
+
+    Util.showDefaultToast("ws ready");
+    debugPrint('ws ready');
 
     channel.stream.listen((event) {
       final Map<String, dynamic> eventJson = json.decode(event.toString());
@@ -121,10 +121,12 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
           }
       }
     }, onError: (error) async {
+      Util.showDefaultToast('ws onError $error');
       debugPrint('ws onError $error');
       await _wsReConn();
       Util.showDefaultToast("与服务器断开连接，请重新登录");
     }, onDone: () async {
+      Util.showDefaultToast('ws onDone');
       debugPrint('ws onDone');
       await _wsReConn();
     });
@@ -135,33 +137,37 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
   }
 
   Future _wsReConn() async {
-    //等到上一次重连结束
-    if (_autoReConnWs && _lastWsReConnJob?.isCompleted == true) {
-      //与上一次重连的最小时间间隔为minSpan
-      await Future(() async {
-        final lastTime = _lastWsReConnTime;
-        if (lastTime != null) {
-          const minSpan = 500;
-          final nowTime = DateTime.now().millisecondsSinceEpoch;
-          final span = nowTime - lastTime;
-          final int delay;
-          if (span > minSpan) {
-            delay = minSpan;
-          } else if (span > 0) {
-            delay = minSpan - span;
-          } else {
-            delay = 0;
-          }
-          await Future.delayed(Duration(milliseconds: delay));
-        }
-      });
-
-      final completer = Completer();
-      await _wsConn();
-      _lastWsReConnTime = DateTime.now().millisecondsSinceEpoch;
-      _lastWsReConnJob = completer;
-      completer.complete();
+    if (!_autoReConnWs) return;
+    final lastWsReConnJob = _lastWsReConnJob;
+    if (lastWsReConnJob != null) {
+      //等到上一次重连结束
+      await lastWsReConnJob.future;
     }
+    final completer = Completer();
+    _lastWsReConnJob = completer;
+    Util.showDefaultToast("ws reConn");
+    debugPrint("ws reConn");
+    //与上一次重连的最小时间间隔为minSpan
+    await Future(() async {
+      final lastTime = _lastWsReConnTime;
+      if (lastTime != null) {
+        const minSpan = 500;
+        final nowTime = DateTime.now().millisecondsSinceEpoch;
+        final span = nowTime - lastTime;
+        final int delay;
+        if (span > minSpan) {
+          delay = minSpan;
+        } else if (span > 0) {
+          delay = minSpan - span;
+        } else {
+          delay = 0;
+        }
+        await Future.delayed(Duration(milliseconds: delay));
+      }
+    });
+    await _wsConn();
+    _lastWsReConnTime = DateTime.now().millisecondsSinceEpoch;
+    completer.complete();
   }
 
   int? _lastWsReConnTime;
