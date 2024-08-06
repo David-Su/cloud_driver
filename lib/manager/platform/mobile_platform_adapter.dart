@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:cloud_driver/config/config.dart';
@@ -6,6 +7,10 @@ import 'package:cloud_driver/manager/dio_manager.dart';
 import 'package:cloud_driver/manager/platform/platform_adapter.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/widgets.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:cloud_driver/manager/work_manager.dart' as work_manager;
+import 'dart:developer' as developer;
 
 /// @Author SuK
 /// @Des
@@ -32,18 +37,34 @@ class PlatformAdapterImpl implements PlatformAdapter {
     if (files == null) return;
 
     await Future.wait(files.map((file) async {
-      final stream = file.readStream;
-      if (stream == null) {
-        return;
-      }
-      final formData = FormData.fromMap(
-          {"file": MultipartFile(stream, file.size, filename: file.name)});
+      final completer = Completer();
+      final portName  ='upload_finish_port_${files.indexOf(file)}';
+      final receivePort = ReceivePort();
+      IsolateNameServer.registerPortWithName(
+        receivePort.sendPort,
+        portName,
+      );
+      receivePort.listen((message) {
+        developer.log('receivePort listen',name: 'PlatformAdapterImpl');
+        debugPrint("receivePort listen");
+        IsolateNameServer.removePortNameMapping(portName);
+        receivePort.close();
+        completer.complete();
+      });
 
-      final filePath = await getFileParentPath();
+      final fileParentPath = await getFileParentPath();
 
-      await DioManager().defaultDio.post(
-          "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?path=$filePath",
-          data: formData);
+      final inputData = {
+        "fileParentPath": fileParentPath,
+        "localFilePath": file.path,
+        "portName": 'upload_finish_port_${files.indexOf(file)}',
+      };
+
+      Workmanager().registerOneOffTask(
+          work_manager.uploadTaskKey, work_manager.uploadTaskKey,
+          inputData: inputData);
+
+      await await completer.future;
     }));
   }
 }

@@ -362,32 +362,17 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _uploadFile(
       UploadFileEvent uploadFileEvent, Emitter<FilePageState> emit) async {
-    final completer = Completer();
-    final receivePort = ReceivePort();
-    receivePort.listen((mesage){
-      completer.complete();
-      receivePort.close();
-    });
-    Workmanager().registerOneOffTask(
-      work_manager.uploadTaskKey,
-      work_manager.uploadTaskKey,
-      inputData: <String, dynamic>{
-        'isDir': uploadFileEvent.dir,
-        'fileParentPath': _getWholePathStr(),
-        'sendPort': receivePort.sendPort,
-      },
-    );
 
-    // await _platformAdapter.uploadFile(
-    //     isDir: uploadFileEvent.dir,
-    //     getFileParentPath: ({String? dir}) async {
-    //       if (uploadFileEvent.dir && dir != null && dir.isNotEmpty) {
-    //         await _createDir(CreateDirEvent(dir), emit);
-    //         return "${_getWholePathStr()},$dir";
-    //       }
-    //       return _getWholePathStr();
-    //     });
-    await completer.future;
+    await _platformAdapter.uploadFile(
+        isDir: uploadFileEvent.dir,
+        getFileParentPath: ({String? dir}) async {
+          if (uploadFileEvent.dir && dir != null && dir.isNotEmpty) {
+            await _createDir(CreateDirEvent(dir), emit);
+            return "${_getWholePathStr()},$dir";
+          }
+          return _getWholePathStr();
+        });
+
     await _refresh(emit);
   }
 

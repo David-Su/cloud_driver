@@ -12,6 +12,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   debugPrint("main() 当前渠道->${ChannelConfig.channel}");
   work_manager.init();
   runApp(const MyApp());
