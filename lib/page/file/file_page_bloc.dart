@@ -85,8 +85,15 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final token = await SharedPreferences.getInstance()
         .then((value) => value.getString(SpConfig.keyToken));
 
-    final channel = WebSocketChannel.connect(Uri.parse(
-        "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
+    final WebSocketChannel channel;
+    try {
+      channel = WebSocketChannel.connect(Uri.parse(
+          "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
+    } catch (e) {
+      debugPrint(e.toString());
+      _wsReConn();
+      return;
+    }
 
     await channel.ready;
 
@@ -362,7 +369,6 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   Future<void> _uploadFile(
       UploadFileEvent uploadFileEvent, Emitter<FilePageState> emit) async {
-
     await _platformAdapter.uploadFile(
         isDir: uploadFileEvent.dir,
         getFileParentPath: ({String? dir}) async {

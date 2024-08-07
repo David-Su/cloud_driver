@@ -31,27 +31,6 @@ void _callbackDispatcher() {
 
     switch (task) {
       case uploadTaskKey:
-
-        // await flutterCompute<dynamic,Map<String,dynamic>>((message) async {
-        //   final String fileParentPath = message!['fileParentPath'];
-        //   final String localFilePath = message!['localFilePath'];
-        //   final String portName = message!['portName'];
-        //
-        //   final file = File(localFilePath);
-        //   final fileLength = await file.length();
-        //   final fileName = path.basename(file.path);
-        //   final stream = file.openRead(0, fileLength);
-        //
-        //   final formData = FormData.fromMap(
-        //       {"file": MultipartFile(stream, fileLength, filename: fileName)});
-        //
-        //   await DioManager().defaultDio.post(
-        //       "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?path=$fileParentPath",
-        //       data: formData);
-        //
-        //   IsolateNameServer.lookupPortByName(portName)?.send(null);
-        // }, inputData!);
-
         final String fileParentPath = inputData!['fileParentPath'];
         final String localFilePath = inputData!['localFilePath'];
         final String portName = inputData!['portName'];
@@ -69,10 +48,6 @@ void _callbackDispatcher() {
             data: formData);
 
         IsolateNameServer.lookupPortByName(portName)?.send(null);
-        // await flutterCompute((message) async {
-        //   print(message);
-        // }, "testflutterCompute");
-
         break;
     }
 //simpleTask will be emitted here.

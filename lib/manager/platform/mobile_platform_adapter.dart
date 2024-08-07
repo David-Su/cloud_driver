@@ -11,6 +11,7 @@ import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:cloud_driver/manager/work_manager.dart' as work_manager;
 import 'dart:developer' as developer;
+import 'package:uuid/uuid.dart';
 
 /// @Author SuK
 /// @Des
@@ -36,16 +37,18 @@ class PlatformAdapterImpl implements PlatformAdapter {
 
     if (files == null) return;
 
+    const uuid = Uuid();
+
     await Future.wait(files.map((file) async {
       final completer = Completer();
-      final portName  ='upload_finish_port_${files.indexOf(file)}';
+      final portName = 'upload_finish_port_${files.indexOf(file)}';
       final receivePort = ReceivePort();
       IsolateNameServer.registerPortWithName(
         receivePort.sendPort,
         portName,
       );
       receivePort.listen((message) {
-        developer.log('receivePort listen',name: 'PlatformAdapterImpl');
+        developer.log('receivePort listen', name: 'PlatformAdapterImpl');
         debugPrint("receivePort listen");
         IsolateNameServer.removePortNameMapping(portName);
         receivePort.close();
@@ -60,8 +63,12 @@ class PlatformAdapterImpl implements PlatformAdapter {
         "portName": 'upload_finish_port_${files.indexOf(file)}',
       };
 
-      Workmanager().registerOneOffTask(
-          work_manager.uploadTaskKey, work_manager.uploadTaskKey,
+      Workmanager().registerOneOffTask(uuid.v1(), work_manager.uploadTaskKey,
+          constraints: Constraints(
+              requiresBatteryNotLow: false,
+              requiresCharging: false,
+              requiresDeviceIdle: false,
+              networkType: NetworkType.not_required),
           inputData: inputData);
 
       await await completer.future;
