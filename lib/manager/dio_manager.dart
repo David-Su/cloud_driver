@@ -30,9 +30,11 @@ class DioManager {
         connectTimeout:
             const Duration(milliseconds: NetworkConfig.timeoutConnect)));
     defaultDio.interceptors
-        .add(LogInterceptor(responseBody: true, requestBody: true));
-    defaultDio.interceptors.add(MyInterceptor());
+      ..add(LogInterceptor(responseBody: true, requestBody: true))
+      ..add(MyInterceptor());
   }
+
+  Completer<BuildContext>? _dialogCompleter = null;
 
   Future<BaseEntity<T>?> doPost<T>(
       {required String api,
@@ -42,20 +44,19 @@ class DioManager {
       ProgressCallback? onSendProgress,
       Handler<T>? interceptor,
       bool isShowDialog = true}) async {
-    final Completer<BuildContext>? dialogCompleter;
     final job = Completer<void>();
 
     _jobs.add(job);
 
-    if (isShowDialog) {
-      final _dialogCompleter = Completer<BuildContext>();
-      dialogCompleter = _dialogCompleter;
+    if (isShowDialog && _dialogCompleter == null) {
+      final dialogCompleter = Completer<BuildContext>();
+      _dialogCompleter = dialogCompleter;
       showDialog(
           context: MyApp.navigatorKey.currentContext!,
           builder: (BuildContext dialogContext) {
             //调用这次showDialog之前如果有弹窗的话,builder会走两次,未知原因
-            if (!_dialogCompleter.isCompleted) {
-              _dialogCompleter.complete(dialogContext);
+            if (!dialogCompleter.isCompleted) {
+              dialogCompleter.complete(dialogContext);
             }
             return Center(
               child: Container(
@@ -68,8 +69,6 @@ class DioManager {
                       borderRadius: BorderRadius.circular(8))),
             );
           });
-    } else {
-      dialogCompleter = null;
     }
 
     BaseEntity<T>? result;
@@ -77,8 +76,6 @@ class DioManager {
     try {
       final value = await defaultDio.post(api,
           data: data, onSendProgress: onSendProgress);
-
-      await dialogCompleter?.future.then((value) => Navigator.of(value).pop());
 
       BaseEntity<T> baseEntity =
           transformer.call(json.decode(value.toString()));
@@ -89,8 +86,6 @@ class DioManager {
         result = defaultHandle(context, baseEntity);
       }
     } catch (err) {
-      await dialogCompleter?.future.then((value) => Navigator.of(value).pop());
-
       if (err is DioException) {
         final msg = err.message;
         if (msg != null && msg.isNotEmpty) {
@@ -117,6 +112,15 @@ class DioManager {
     job.complete();
     _jobs.remove(job);
 
+    if (_jobs.isEmpty) {
+      final completer = _dialogCompleter;
+      if (completer != null) {
+        final context = await completer.future;
+        Navigator.of(context).pop();
+      }
+      _dialogCompleter = null;
+    }
+
     return result;
   }
 
@@ -130,7 +134,8 @@ class DioManager {
       case NetworkConfig.codeOk:
         return baseEntity;
       case NetworkConfig.codeTokenTimeOut:
-        Navigator.of(context).pushNamed("/login", arguments: LoginArgs(LoginReason.refreshToken));
+        Navigator.of(context).pushNamed("/login",
+            arguments: LoginArgs(LoginReason.refreshToken));
         break;
       case NetworkConfig.codeUnOrPwError:
         break;

@@ -12,6 +12,7 @@ import 'package:workmanager/workmanager.dart';
 import 'package:cloud_driver/manager/work_manager.dart' as work_manager;
 import 'dart:developer' as developer;
 import 'package:uuid/uuid.dart';
+import 'package:flutter_isolate/flutter_isolate.dart';
 
 /// @Author SuK
 /// @Des
@@ -31,6 +32,7 @@ class PlatformAdapterImpl implements PlatformAdapter {
       {required bool isDir,
       required FutureOr<String> Function({String dir})
           getFileParentPath}) async {
+
     final files = await FilePicker.platform
         .pickFiles(allowMultiple: true, withData: false, withReadStream: true)
         .then((value) => value?.files);
