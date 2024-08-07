@@ -62,7 +62,7 @@ class PlatformAdapterImpl implements PlatformAdapter {
       final inputData = {
         "fileParentPath": fileParentPath,
         "localFilePath": file.path,
-        "portName": 'upload_finish_port_${files.indexOf(file)}',
+        "portName": portName,
       };
 
       Workmanager().registerOneOffTask(uuid.v1(), work_manager.uploadTaskKey,
