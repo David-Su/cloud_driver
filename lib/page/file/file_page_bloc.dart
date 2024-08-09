@@ -89,13 +89,12 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     try {
       channel = WebSocketChannel.connect(Uri.parse(
           "${NetworkConfig.wsUrlBase}${NetworkConfig.apiWsUploadTasks}?token=$token"));
+      await channel.ready;
     } catch (e) {
       debugPrint(e.toString());
       _wsReConn();
       return;
     }
-
-    await channel.ready;
 
     Util.showDefaultToast("ws ready");
     debugPrint('ws ready');

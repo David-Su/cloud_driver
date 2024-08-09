@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:cloud_driver/config/config.dart';
 import 'package:cloud_driver/manager/dio_manager.dart';
 import 'package:cloud_driver/manager/platform/platform_adapter.dart';
+import 'package:cloud_driver/util/util.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
@@ -27,6 +29,13 @@ class PlatformAdapterImpl implements PlatformAdapter {
   @override
   void webOpen({required String url}) {}
 
+  static Future<List<String>> _compute() async {
+    final files = await FilePicker.platform
+        .pickFiles(allowMultiple: true, withData: false, withReadStream: true)
+        .then((value) => value?.files);
+    return files?.map((e) => e.path!).toList() ?? [];
+  }
+
   @override
   FutureOr<void> uploadFile(
       {required bool isDir,
@@ -38,11 +47,17 @@ class PlatformAdapterImpl implements PlatformAdapter {
 
     if (files == null) return;
 
+    final filePaths = files.map((e) => e.path!).toList();
+
+    if (filePaths.isEmpty) {
+      Util.showDefaultToast("没有有效的文件");
+    }
+
     const uuid = Uuid();
 
-    await Future.wait(files.map((file) async {
+    await Future.wait(filePaths.map((path) async {
       final completer = Completer();
-      final portName = 'upload_finish_port_${files.indexOf(file)}';
+      final portName = 'upload_finish_port_${filePaths.indexOf(path)}';
       final receivePort = ReceivePort();
       IsolateNameServer.registerPortWithName(
         receivePort.sendPort,
@@ -60,7 +75,7 @@ class PlatformAdapterImpl implements PlatformAdapter {
 
       final inputData = {
         "fileParentPath": fileParentPath,
-        "localFilePath": file.path,
+        "localFilePath": path,
         "portName": portName,
       };
 
