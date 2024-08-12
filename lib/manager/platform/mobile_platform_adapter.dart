@@ -45,7 +45,7 @@ class PlatformAdapterImpl implements PlatformAdapter {
         .pickFiles(allowMultiple: true, withData: false, withReadStream: true)
         .then((value) => value?.files);
 
-    if (files == null) return;
+    if (files == null || files.isEmpty) return;
 
     final filePaths = files.map((e) => e.path!).toList();
 
