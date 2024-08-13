@@ -17,12 +17,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mime/mime.dart';
-
 import '../file_page_bloc.dart';
 import '../file_page_event.dart';
 import '../../../model/state/file_page_state.dart';
-import 'package:open_file/open_file.dart';
 import 'package:collection/collection.dart';
 
 class FilePage extends StatefulWidget {

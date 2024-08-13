@@ -12,23 +12,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// @Date 2023/4/28
 class PlatformAdapterImpl implements PlatformAdapter {
   @override
-  Size webGetScreenSize() => Size(html.window.screen?.width?.toDouble() ?? 0, html.window.screen?.height?.toDouble() ?? 0);
+  Size webGetScreenSize() => Size(html.window.screen?.width?.toDouble() ?? 0,
+      html.window.screen?.height?.toDouble() ?? 0);
 
   @override
-  void webBlocRightClick() => html.window.document.onContextMenu.listen((evt) => evt.preventDefault());
+  void webBlocRightClick() =>
+      html.window.document.onContextMenu.listen((evt) => evt.preventDefault());
 
   @override
   void webOpen({required String url}) {
     html.window.open(url, "_self");
   }
 
-  @override
-  FutureOr<void> uploadFile({required bool isDir, required FutureOr<String> Function({String dir}) getFileParentPath}) async {
+  FutureOr<void> uploadFile(
+      {required bool isDir,
+      required FutureOr<String> Function({String dir}) getFileParentPath,
+      required FutureOr<void> Function() onTaskDown}) async {
     // await _uploadOldWay(emit);
 
     final currentUploadCompleter = Completer();
 
-    final token = (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
+    final token =
+        (await SharedPreferences.getInstance()).getString(SpConfig.keyToken);
 
     final element = html.InputElement(type: 'file');
     // final element = html.FileUploadInputElement();
@@ -64,11 +69,13 @@ class PlatformAdapterImpl implements PlatformAdapter {
         final formData = html.FormData();
         final request = html.HttpRequest();
 
-        request.onLoadEnd.listen((event) {
+        request.onLoadEnd.listen((event) async {
+          await onTaskDown();
           if (++loadEndFlag == files.length) currentUploadCompleter.complete();
         });
 
-        request.open("POST", "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
+        request.open("POST",
+            "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?token=$token&path=$filePath");
 
         formData.appendBlob("file", file, file.name);
         request.send(formData);

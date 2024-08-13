@@ -43,15 +43,11 @@ dependencies:
 
   fluttertoast: ^8.2.4
 
-  flutter_dropzone: ^3.0.5
-
   flutter_bloc: ^8.0.1
 
   auto_size_text: ^3.0.0
 
   web_socket_channel: ^2.4.5
-
-  dropdown_button2: ^1.9.2
 
   event_bus: ^2.0.0
 
@@ -59,15 +55,27 @@ dependencies:
 
   flutter_svg: ^2.0.4
 
-  open_file: ^3.3.2
-
   url_launcher: ^6.2.4
 
-  video_player: ^2.8.6
+  video_player: ^2.8.7
 
   share_plus: ^9.0.0
 
   chewie: ^1.8.1
+
+  http: ^1.1.2
+
+  flutter_screenutil: ^5.8.4
+
+  file_picker: ^8.0.7
+
+  collection: ^1.18.0
+
+  mime: ^1.0.5
+
+  workmanager: ^0.5.2
+
+  flutter_isolate: ^2.0.4
 
 dev_dependencies:
   flutter_test:
@@ -80,24 +88,10 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^1.0.0
 
-  build_runner: ^2.1.10
+  build_runner: ^2.1.12
 
   # dart run build_runner build构建实现类
   json_serializable: ^6.8.0
-
-  http: ^0.13.4
-
-  flutter_screenutil: ^5.9.0
-
-  file_picker: ^8.0.7
-
-  collection: ^1.18.0
-
-  mime: ^1.0.5
-
-  workmanager: ^0.5.2
-
-  flutter_isolate: ^2.0.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

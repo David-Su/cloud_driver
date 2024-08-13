@@ -376,9 +376,10 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
             return "${_getWholePathStr()},$dir";
           }
           return _getWholePathStr();
+        },
+        onTaskDown: () async {
+          await _refresh(emit);
         });
-
-    await _refresh(emit);
   }
 
   Future<String> _getDownloadUrl(String? fileName,
