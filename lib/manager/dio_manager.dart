@@ -116,7 +116,11 @@ class DioManager {
       final completer = _dialogCompleter;
       if (completer != null) {
         final context = await completer.future;
-        Navigator.of(context).pop();
+        try {
+          Navigator.of(context).pop();
+        } catch (e) {
+          debugPrint(e.toString());
+        }
       }
       _dialogCompleter = null;
     }

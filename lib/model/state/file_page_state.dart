@@ -1,7 +1,6 @@
 import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
-import 'package:open_file/open_file.dart';
 
 class FilePageState {
   //当前路径

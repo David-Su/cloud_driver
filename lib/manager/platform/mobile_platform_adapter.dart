@@ -39,13 +39,13 @@ class PlatformAdapterImpl implements PlatformAdapter {
   @override
   FutureOr<void> uploadFile(
       {required bool isDir,
-      required FutureOr<String> Function({String dir})
-          getFileParentPath}) async {
+      required FutureOr<String> Function({String dir}) getFileParentPath,
+      required FutureOr<void> Function() onTaskDown}) async {
     final files = await FilePicker.platform
         .pickFiles(allowMultiple: true, withData: false, withReadStream: true)
         .then((value) => value?.files);
 
-    if (files == null) return;
+    if (files == null || files.isEmpty) return;
 
     final filePaths = files.map((e) => e.path!).toList();
 
@@ -57,15 +57,14 @@ class PlatformAdapterImpl implements PlatformAdapter {
 
     await Future.wait(filePaths.map((path) async {
       final completer = Completer();
-      final portName = 'upload_finish_port_${filePaths.indexOf(path)}';
+      final portName = uuid.v4();
       final receivePort = ReceivePort();
       IsolateNameServer.registerPortWithName(
         receivePort.sendPort,
         portName,
       );
       receivePort.listen((message) {
-        developer.log('receivePort listen', name: 'PlatformAdapterImpl');
-        debugPrint("receivePort listen");
+        debugPrint("receivePort listen:${message}");
         IsolateNameServer.removePortNameMapping(portName);
         receivePort.close();
         completer.complete();
@@ -79,15 +78,15 @@ class PlatformAdapterImpl implements PlatformAdapter {
         "portName": portName,
       };
 
-      Workmanager().registerOneOffTask(uuid.v1(), work_manager.uploadTaskKey,
+      Workmanager().registerOneOffTask(uuid.v4(), work_manager.uploadTaskKey,
           constraints: Constraints(
               requiresBatteryNotLow: false,
               requiresCharging: false,
               requiresDeviceIdle: false,
               networkType: NetworkType.not_required),
           inputData: inputData);
-
-      await await completer.future;
+      await completer.future;
+      await onTaskDown();
     }));
   }
 }

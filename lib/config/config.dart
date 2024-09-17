@@ -57,3 +57,8 @@ class SpConfig {
   static const String keyUsername = "key_username";
   static const String keyPsw = "key_psw";
 }
+
+class IsolateConfig {
+  ///刷新当前文件夹文件
+  static const String portNameRefreshCurrentDir = "portNameRefreshCurrentDir";
+}
