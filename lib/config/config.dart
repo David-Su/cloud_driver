@@ -10,7 +10,7 @@ class ChannelConfig {
 class NetworkConfig {
   NetworkConfig._internal();
 
-  static final String urlBase = "http://$_host/CloudDriver";
+  static final String urlBase = "https://$_host/CloudDriver";
   static final String wsUrlBase = "ws://$_host/CloudDriver";
   static const String apiLogin = "/login";
   static const String apiListFile = "/listfile";
@@ -41,7 +41,7 @@ class NetworkConfig {
         //todo
         return "";
       case ChannelConfig.channelInternetProxy:
-        return "fqym.top:8080";
+        return "www.fqym.top:8080";
       case ChannelConfig.channelIntranet:
         return "192.168.0.250:8080";
     }
