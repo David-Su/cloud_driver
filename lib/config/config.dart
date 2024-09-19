@@ -10,8 +10,8 @@ class ChannelConfig {
 class NetworkConfig {
   NetworkConfig._internal();
 
-  static final String urlBase = "https://$_host/CloudDriver";
-  static final String wsUrlBase = "ws://$_host/CloudDriver";
+  static final String urlBase = "$_httpScheme://$_host/CloudDriver";
+  static final String wsUrlBase = "$_wsScheme://$_host/CloudDriver";
   static const String apiLogin = "/login";
   static const String apiListFile = "/listfile";
   static const String apiCreateDir = "/createdir";
@@ -47,6 +47,24 @@ class NetworkConfig {
     }
     return "192.168.0.107:8080";
     // return "192.168.0.250:8080";
+  }
+
+  static String get _httpScheme {
+    switch (ChannelConfig.channel) {
+      case ChannelConfig.channelInternetProxy:
+        return "https";
+      default:
+        return "http";
+    }
+  }
+
+  static String get _wsScheme {
+    switch (ChannelConfig.channel) {
+      case ChannelConfig.channelInternetProxy:
+        return "wss";
+      default:
+        return "ws";
+    }
   }
 }
 

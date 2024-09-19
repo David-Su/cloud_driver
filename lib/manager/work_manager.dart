@@ -3,7 +3,9 @@ import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:cloud_driver/manager/platform/platform_adapter.dart';
+import 'package:cloud_driver/util/util.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:path/path.dart' as path;
 
@@ -27,7 +29,7 @@ void init() {
     'vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
 void _callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    print("Native called background task: $task");
+    debugPrint("Native called background task: $task");
 
     switch (task) {
       case uploadTaskKey:
@@ -40,12 +42,16 @@ void _callbackDispatcher() {
         final fileName = path.basename(file.path);
         final stream = file.openRead(0, fileLength);
 
+        debugPrint("$task upload start");
+
         final formData = FormData.fromMap(
             {"file": MultipartFile(stream, fileLength, filename: fileName)});
 
         await DioManager().defaultDio.post(
             "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?path=$fileParentPath",
             data: formData);
+
+        debugPrint("$task upload end");
 
         IsolateNameServer.lookupPortByName(portName)?.send(null);
         break;
