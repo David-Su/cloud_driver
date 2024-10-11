@@ -36,7 +36,7 @@ dependencies:
 
   dio: ^5.7.0
 
-  shared_preferences: ^2.0.13
+  shared_preferences: ^2.3.2
 
   #flutter pub run build_runner build
   json_annotation: ^4.8.0
@@ -73,9 +73,14 @@ dependencies:
 
   mime: ^1.0.5
 
-  workmanager: ^0.5.2
+#  workmanager: ^0.5.2
 
   flutter_isolate: ^2.0.4
+
+  workmanager:
+    git:
+      url: https://github.com/fluttercommunity/flutter_workmanager.git
+      ref: b783000
 
 dev_dependencies:
   flutter_test:
