@@ -39,9 +39,10 @@ class _VideoPageState2 extends State<VideoPage> {
   Widget build(BuildContext context) {
     final chewieController = _chewieController;
     return _videoPlayerController.value.isInitialized
-        ? Chewie(
+        ? SafeArea(
+            child: Chewie(
             controller: chewieController,
-          )
+          ))
         : Container(
             alignment: Alignment.center,
             child: const CircularProgressIndicator(),

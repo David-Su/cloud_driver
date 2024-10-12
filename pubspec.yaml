@@ -57,11 +57,11 @@ dependencies:
 
   url_launcher: ^6.2.4
 
-  video_player: ^2.8.7
+  video_player: ^2.9.2
 
   share_plus: ^9.0.0
 
-  chewie: ^1.8.1
+  chewie: ^1.8.5
 
   http: ^1.1.2
 
