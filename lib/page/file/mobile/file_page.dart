@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'dart:math';
-
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_driver/manager/platform/platform_adapter.dart';
-import 'package:cloud_driver/model/entity/list_file_entity.dart';
 import 'package:cloud_driver/model/entity/open_dir_entity.dart';
 import 'package:cloud_driver/model/entity/update_task_entity.dart';
 import 'package:cloud_driver/page/file/base_page_state.dart';
@@ -11,15 +8,14 @@ import 'package:cloud_driver/page/login/login_page.dart';
 import 'package:cloud_driver/page/video/video_page.dart';
 import 'package:cloud_driver/route/PopupWindowRoute.dart';
 import 'package:cloud_driver/util/util.dart';
-import 'package:cloud_driver/widget/ExpandableFab.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../file_page_bloc.dart';
-import '../file_page_event.dart';
-import '../../../model/state/file_page_state.dart';
+import 'package:transparent_image/transparent_image.dart';
+import 'package:cloud_driver/page/file/file_page_bloc.dart';
+import 'package:cloud_driver/page/file/file_page_event.dart';
+import 'package:cloud_driver/model/state/file_page_state.dart';
 import 'package:collection/collection.dart';
 
 class FilePage extends StatefulWidget {
@@ -105,7 +101,9 @@ class _FilePageState extends BasePageState {
                             ? Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  CircularProgressIndicator(strokeWidth: 6.w,),
+                                  CircularProgressIndicator(
+                                    strokeWidth: 6.w,
+                                  ),
                                   button,
                                 ],
                               )
@@ -415,7 +413,7 @@ class _FilePageState extends BasePageState {
                         alignment: Alignment.center,
                         child: Text(
                           "移动到",
-                          textScaleFactor: 1.2,
+                          textScaler: TextScaler.linear(1.2),
                           style: TextStyle(
                               color: Colors.black54,
                               fontWeight: FontWeight.bold),
@@ -630,12 +628,6 @@ class _FilePageState extends BasePageState {
         });
   }
 
-  ButtonStyle _getButtonStyle() {
-    return ButtonStyle(
-        shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.w))));
-  }
-
   ///当前目录的文件列表
   Widget _buildChildrenList() => BlocBuilder<FilePageBloc, FilePageState>(
         builder: (BuildContext context, FilePageState state) {
@@ -659,7 +651,8 @@ class _FilePageState extends BasePageState {
 
   Widget _buildGridFileWidget(List<OpenDirChild> children) {
     return GridView.builder(
-        physics: const ClampingScrollPhysics(),
+        // physics: const ClampingScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: children.length,
         controller: _scrollController,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -690,8 +683,9 @@ class _FilePageState extends BasePageState {
                           child: previewImg != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(25.w),
-                                  child: Image.network(
-                                    "${file.previewImgUrl}",
+                                  child: FadeInImage.memoryNetwork(
+                                    image: "${file.previewImgUrl}",
+                                    placeholder: kTransparentImage,
                                     fit: BoxFit.cover,
                                   ),
                                 )

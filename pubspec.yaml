@@ -77,6 +77,8 @@ dependencies:
 
   flutter_isolate: ^2.0.4
 
+  transparent_image: ^2.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

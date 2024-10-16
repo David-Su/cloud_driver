@@ -821,11 +821,14 @@ class _FilePageState extends BasePageState {
                         child: Row(
                           children: [
                             const Spacer(),
-                            ElevatedButton(
-                              style: _getButtonStyle(),
-                              child: const Text(
+                            FilledButton(
+                              // style: _getButtonStyle(),
+                              child: Text(
                                 "移到此处",
-                                style: TextStyle(color: Colors.white),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: Colors.white),
                               ),
                               onPressed: () {
                                 Navigator.of(context).pop();
