@@ -15,6 +15,7 @@ import 'package:cloud_driver/manager/work_manager.dart' as work_manager;
 import 'dart:developer' as developer;
 import 'package:uuid/uuid.dart';
 import 'package:flutter_isolate/flutter_isolate.dart';
+import 'package:path/path.dart' as path;
 
 /// @Author SuK
 /// @Des
@@ -78,15 +79,40 @@ class PlatformAdapterImpl implements PlatformAdapter {
         "portName": portName,
       };
 
-      Workmanager().registerOneOffTask(uuid.v4(), work_manager.uploadTaskKey,
-          constraints: Constraints(
-              requiresBatteryNotLow: false,
-              requiresCharging: false,
-              requiresDeviceIdle: false,
-              networkType: NetworkType.not_required),
-          inputData: inputData);
+      if (Platform.isAndroid) {
+        Workmanager().registerOneOffTask(uuid.v4(), work_manager.uploadTaskKey,
+            constraints: Constraints(
+                requiresBatteryNotLow: false,
+                requiresCharging: false,
+                requiresDeviceIdle: false,
+                networkType: NetworkType.not_required),
+            inputData: inputData);
+      } else if (Platform.isIOS) {
+        _iosUpload(inputData);
+      }
+
       await completer.future;
       await onTaskDown();
     }));
+  }
+
+  _iosUpload(Map inputData) async {
+    final String fileParentPath = inputData['fileParentPath'];
+    final String localFilePath = inputData['localFilePath'];
+    final String portName = inputData['portName'];
+
+    final file = File(localFilePath);
+    final fileLength = await file.length();
+    final fileName = path.basename(file.path);
+    final stream = file.openRead(0, fileLength);
+
+    final formData = FormData.fromMap(
+        {"file": MultipartFile(stream, fileLength, filename: fileName)});
+
+    await DioManager().defaultDio.post(
+        "${NetworkConfig.urlBase}${NetworkConfig.apiUploadFile}?path=$fileParentPath",
+        data: formData);
+
+    IsolateNameServer.lookupPortByName(portName)?.send(null);
   }
 }

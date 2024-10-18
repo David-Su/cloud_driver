@@ -36,7 +36,7 @@ dependencies:
 
   dio: ^5.7.0
 
-  shared_preferences: ^2.0.13
+  shared_preferences: ^2.3.2
 
   #flutter pub run build_runner build
   json_annotation: ^4.8.0
@@ -57,11 +57,11 @@ dependencies:
 
   url_launcher: ^6.2.4
 
-  video_player: ^2.8.7
+  video_player: ^2.9.2
 
   share_plus: ^9.0.0
 
-  chewie: ^1.8.1
+  chewie: ^1.8.5
 
   http: ^1.1.2
 
@@ -73,11 +73,16 @@ dependencies:
 
   mime: ^1.0.5
 
-  workmanager: ^0.5.2
+#  workmanager: ^0.5.2
 
   flutter_isolate: ^2.0.4
 
   transparent_image: ^2.0.1
+
+  workmanager:
+    git:
+      url: https://github.com/fluttercommunity/flutter_workmanager.git
+      ref: b783000
 
 dev_dependencies:
   flutter_test:
