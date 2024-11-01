@@ -48,19 +48,21 @@ class _LoginPageState extends State<LoginPage> {
           body: BlocBuilder<LoginPageBloc, LoginPageState>(
             builder: (BuildContext context, LoginPageState state) {
               if (state.showLoginUi) {
-                return kIsWeb ? _buildWebPage(context) : _buildMobilePage(
-                    context);
+                return kIsWeb
+                    ? _buildWebPage(context)
+                    : _buildMobilePage(context);
               } else {
-                return Container(alignment: Alignment.center, child:Image.asset("graphics/ic_launcher.png"),);
+                return Container(
+                  alignment: Alignment.center,
+                  child: Image.asset("graphics/ic_launcher.png"),
+                );
               }
             },
             buildWhen: (pre, cur) {
               return pre.showLoginUi != cur.showLoginUi;
-            },),
-          backgroundColor: Theme
-              .of(context)
-              .colorScheme
-              .background,
+            },
+          ),
+          backgroundColor: Theme.of(context).colorScheme.background,
         ),
       ),
     );
@@ -129,10 +131,7 @@ class _LoginPageState extends State<LoginPage> {
       builder: (BuildContext context, state) {
         return Text(
           state.title,
-          style: Theme
-              .of(context)
-              .textTheme
-              .titleLarge,
+          style: Theme.of(context).textTheme.titleLarge,
         );
       },
       buildWhen: (pre, cur) {
@@ -142,11 +141,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildWebPage(BuildContext context) {
-
     //登录框的宽度
-    final webScreenWidth = _platformAdapter
-        .webGetScreenSize()
-        ?.width ?? 0;
+    final webScreenWidth = _platformAdapter.webGetScreenSize()?.width ?? 0;
     final loginFrameWidth = webScreenWidth / 5;
     final bgWidth = webScreenWidth / 2;
 
@@ -154,8 +150,13 @@ class _LoginPageState extends State<LoginPage> {
       child: Stack(
         children: [
           Center(
-            child: Image.network(
-              "assets/graphics/ic_login.svg",
+            // child: Image.network(
+            //   "assets/graphics/ic_login.svg",
+            //   width: bgWidth,
+            //   fit: BoxFit.fitWidth,
+            // ),
+            child: SvgPicture.asset(
+              "graphics/ic_login.svg",
               width: bgWidth,
               fit: BoxFit.fitWidth,
             ),
@@ -166,7 +167,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Card(
                 child: Container(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                   width: loginFrameWidth,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

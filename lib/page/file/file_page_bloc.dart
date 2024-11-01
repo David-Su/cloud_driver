@@ -23,6 +23,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'file_page_event.dart';
@@ -362,8 +364,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
 
   FutureOr<void> _downloadFile(
       DownloadFileEvent event, Emitter<FilePageState> emit) async {
-    _platformAdapter.webOpen(
-        url: await _getDownloadUrl(state.children[event.index].name));
+    launchUrlString(await _getDownloadUrl(state.children[event.index].name));
   }
 
   Future<void> _uploadFile(
@@ -579,12 +580,7 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final mimeType = lookupMimeType(name);
     final url =
         await _getDownloadUrl(name, downloadMode: _downloadModePlayOnline);
-    // const channel = MethodChannel("channel");
-    // await channel.invokeMethod("playVideo", {"url": url, "mimeType": mimeType});
 
     emit(state.clone()..openVideoPageEvent = OpenVideoPageEvent(url));
-
-    // Navigator.of(event.context)
-    //     .pushNamed("/video", arguments: VideoPageArgs(url));
   }
 }

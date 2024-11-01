@@ -360,7 +360,7 @@ class _FilePageState extends BasePageState {
                       onTap: () {
                         //通知bloc加载目录数据
                         bloc.add(ShowDirChooseDialogEvent());
-                        _showMoveFileSheet(context, state);
+                        _showMoveFileSheet(context);
                       },
                     )
                   ]),
@@ -371,7 +371,7 @@ class _FilePageState extends BasePageState {
   }
 
   ///文件移动操作洁界面
-  void _showMoveFileSheet(BuildContext context, FilePageState state) {
+  void _showMoveFileSheet(BuildContext context) {
     showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
@@ -516,7 +516,7 @@ class _FilePageState extends BasePageState {
                           onPressed: () {
                             Navigator.of(context).pop();
 
-                            final children = state.children;
+                            final children = bloc.state.children;
                             final indexes = children
                                 .where((element) => element.isSelected)
                                 .map((e) => children.indexOf(e))
