@@ -777,7 +777,7 @@ class _FilePageState extends BasePageState {
       case idMove:
         //通知bloc加载目录数据
         bloc.add(ShowDirChooseDialogEvent());
-        _showMoveFileSheet(context);
+        _showMoveFileSheet(context, indexes: [index]);
         break;
     }
   }
@@ -978,7 +978,7 @@ class _FilePageState extends BasePageState {
     );
   }
 
-  void _showMoveFileSheet(BuildContext context) {
+  void _showMoveFileSheet(BuildContext context, {List<int>? indexes}) {
     showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
@@ -1074,13 +1074,19 @@ class _FilePageState extends BasePageState {
                           onPressed: () {
                             Navigator.of(context).pop();
 
-                            final children = bloc.state.children;
-                            final indexes = children
-                                .where((element) => element.isSelected)
-                                .map((e) => children.indexOf(e))
-                                .toList();
+                            final List<int> finalIndexes;
 
-                            bloc.add(MoveFileEvent(indexes));
+                            if (indexes != null) {
+                              finalIndexes = indexes;
+                            } else {
+                              final children = bloc.state.children;
+                              finalIndexes = children
+                                  .where((element) => element.isSelected)
+                                  .map((e) => children.indexOf(e))
+                                  .toList();
+                            }
+
+                            bloc.add(MoveFileEvent(finalIndexes));
                           },
                         )
                       ],
