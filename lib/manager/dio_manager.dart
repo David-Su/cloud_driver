@@ -72,19 +72,11 @@ class DioManager {
     }
 
     BaseEntity<T>? result;
+    Response? value;
 
     try {
-      final value = await defaultDio.post(api,
+      value = await defaultDio.post(api,
           data: data, onSendProgress: onSendProgress);
-
-      BaseEntity<T> baseEntity =
-          transformer.call(json.decode(value.toString()));
-
-      if (interceptor != null) {
-        result = interceptor.call(baseEntity, defaultHandle);
-      } else {
-        result = defaultHandle(context, baseEntity);
-      }
     } catch (err) {
       if (err is DioException) {
         final msg = err.message;
@@ -106,12 +98,11 @@ class DioManager {
         Util.showDefaultToast("网络访问异常");
         debugPrint(err.toString());
       }
-      result = null;
     }
 
+    //loading dialog 相关
     job.complete();
     _jobs.remove(job);
-
     if (_jobs.isEmpty) {
       final completer = _dialogCompleter;
       if (completer != null) {
@@ -123,6 +114,16 @@ class DioManager {
         }
       }
       _dialogCompleter = null;
+    }
+
+    if (value == null) return null;
+
+    BaseEntity<T> baseEntity = transformer.call(value.data);
+
+    if (interceptor != null) {
+      result = interceptor.call(baseEntity, defaultHandle);
+    } else {
+      result = defaultHandle(context, baseEntity);
     }
 
     return result;

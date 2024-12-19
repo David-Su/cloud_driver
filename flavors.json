@@ -1,14 +1,17 @@
 [
   {
     "channel": "internet",
-    "baseHref": "cloud"
+    "baseHref": "server/cloud",
+    "name": "cloud"
   },
   {
     "channel": "internetProxy",
-    "baseHref": "cloud-proxy"
+    "baseHref": "proxy/cloud-proxy",
+    "name": "cloud-proxy"
   },
   {
     "channel": "intranet",
-    "baseHref": "cloud-intranet"
+    "baseHref": "cloud-intranet",
+    "name": "cloud-intranet"
   }
 ]

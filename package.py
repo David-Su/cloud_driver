@@ -12,8 +12,8 @@ def main():
                   '--web-renderer html ' % (flavor["channel"], '/%s/' % (flavor["baseHref"]))
             print("执行-命令->" + cmd)
             os.system(cmd)
-            print("执行-web目录改名-> %s" % (flavor["baseHref"]))
-            target_dir = 'build/%s' % (flavor["baseHref"])
+            print("执行-web目录改名-> %s" % (flavor["name"]))
+            target_dir = 'build/%s' % (flavor["name"])
             if os.path.exists(target_dir):
                 shutil.rmtree(target_dir)
             os.rename('build/web', target_dir)

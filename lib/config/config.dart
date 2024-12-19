@@ -38,20 +38,19 @@ class NetworkConfig {
   static String get _host {
     switch (ChannelConfig.channel) {
       case ChannelConfig.channelInternet:
-        //todo
-        return "";
+        return "www.fqym.top/server";
       case ChannelConfig.channelInternetProxy:
-        return "www.fqym.top:8080";
+        return "www.fqym.top/proxy";
       case ChannelConfig.channelIntranet:
-        return "127.0.0.1:8080";
+        return "192.168.20.105:8080";
     }
-    // return "127.0.0.1:8080";
-    return "192.168.20.105:8080";
+    return "127.0.0.1:8080";
   }
 
   static String get _httpScheme {
     switch (ChannelConfig.channel) {
       case ChannelConfig.channelInternetProxy:
+      case ChannelConfig.channelInternet:
         return "https";
       default:
         return "http";
@@ -61,6 +60,7 @@ class NetworkConfig {
   static String get _wsScheme {
     switch (ChannelConfig.channel) {
       case ChannelConfig.channelInternetProxy:
+      case ChannelConfig.channelInternet:
         return "wss";
       default:
         return "ws";
