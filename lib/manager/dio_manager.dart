@@ -71,11 +71,10 @@ class DioManager {
           });
     }
 
-    BaseEntity<T>? result;
-    Response? value;
+    Response? resp;
 
     try {
-      value = await defaultDio.post(api,
+      resp = await defaultDio.post(api,
           data: data, onSendProgress: onSendProgress);
     } catch (err) {
       if (err is DioException) {
@@ -116,10 +115,10 @@ class DioManager {
       _dialogCompleter = null;
     }
 
-    if (value == null) return null;
+    if (resp == null) return null;
 
-    BaseEntity<T> baseEntity = transformer.call(value.data);
-
+    final BaseEntity<T>? result;
+    final baseEntity = transformer.call(resp.data);
     if (interceptor != null) {
       result = interceptor.call(baseEntity, defaultHandle);
     } else {
