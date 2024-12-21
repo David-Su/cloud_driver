@@ -98,7 +98,6 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
       return;
     }
 
-    Util.showDefaultToast("ws ready");
     debugPrint('ws ready');
 
     channel.stream.listen((event) {
@@ -130,12 +129,9 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
           }
       }
     }, onError: (error) async {
-      Util.showDefaultToast('ws onError $error');
       debugPrint('ws onError $error');
       await _wsReConn();
-      Util.showDefaultToast("与服务器断开连接，请重新登录");
     }, onDone: () async {
-      Util.showDefaultToast('ws onDone');
       debugPrint('ws onDone');
       await _wsReConn();
     });
@@ -154,7 +150,6 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     }
     final completer = Completer();
     _lastWsReConnJob = completer;
-    Util.showDefaultToast("ws reConn");
     debugPrint("ws reConn");
     //与上一次重连的最小时间间隔为minSpan
     await Future(() async {
