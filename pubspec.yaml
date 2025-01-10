@@ -47,7 +47,7 @@ dependencies:
 
   auto_size_text: ^3.0.0
 
-  web_socket_channel: ^2.4.5
+  web_socket_channel: ^3.0.1
 
   event_bus: ^2.0.0
 

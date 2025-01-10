@@ -10,6 +10,7 @@ class Util {
   static showDefaultToast(String content) {
     final context = MyApp.navigatorKey.currentContext!;
     final _fToast = FToast()..init(context);
+    _fToast.removeCustomToast();
     _fToast.showToast(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
