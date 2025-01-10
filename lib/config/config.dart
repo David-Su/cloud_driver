@@ -10,8 +10,10 @@ class ChannelConfig {
 class NetworkConfig {
   NetworkConfig._internal();
 
-  static final String urlBase = "$_httpScheme://$_host/CloudDriver";
-  static final String wsUrlBase = "$_wsScheme://$_host/CloudDriver";
+  static final String urlBase = "$_httpScheme://$_host/CloudDriver-ktor";
+  static final String wsUrlBase = "$_wsScheme://$_host/CloudDriver-ktor";
+  // static final String urlBase = "$_httpScheme://$_host/CloudDriver";
+  // static final String wsUrlBase = "$_wsScheme://$_host/CloudDriver";
   static const String apiLogin = "/login";
   static const String apiListFile = "/listfile";
   static const String apiCreateDir = "/createdir";
@@ -21,6 +23,7 @@ class NetworkConfig {
   static const String apiRenameFile = "/renamefile";
   static const String apiWsUploadTasks = "/websocket/uploadtasks";
   static const String apiOpenDir = "/opendir";
+  static const String apiUploadTasks = "/uploadtasks";
   static const int timeoutConnect = 5000;
   static const int timeoutReceive = 5000;
 
@@ -44,7 +47,8 @@ class NetworkConfig {
       case ChannelConfig.channelIntranet:
         return "192.168.0.250:8080";
     }
-    return "127.0.0.1:8080";
+    // return "127.0.0.1:8080";
+    return "192.168.31.111:8080";
   }
 
   static String get _httpScheme {
