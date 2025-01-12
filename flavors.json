@@ -1,12 +1,12 @@
 [
   {
     "channel": "internet",
-    "baseHref": "server/cloud",
+    "baseHref": "cloud",
     "name": "cloud"
   },
   {
     "channel": "internetProxy",
-    "baseHref": "proxy/cloud-proxy",
+    "baseHref": "cloud-proxy",
     "name": "cloud-proxy"
   },
   {
