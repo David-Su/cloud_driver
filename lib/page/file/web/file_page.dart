@@ -372,10 +372,10 @@ class _FilePageState extends BasePageState {
             ),
           ),
           canPop: false,
-          onPopInvokedWithResult: (bool didPop, dynamic result) {
-            bloc.add(BackEvent());
-            return;
-          },
+          // onPopInvokedWithResult: (bool didPop, dynamic result) {
+          //   bloc.add(BackEvent());
+          //   return;
+          // },
         ),
       ),
     );

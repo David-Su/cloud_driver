@@ -573,9 +573,18 @@ class FilePageBloc extends Bloc<FilePageEvent, FilePageState> {
     final name = state.children[event.index].name;
     if (name == null || name.isEmpty) return;
     final mimeType = lookupMimeType(name);
+
+    if (mimeType == null || mimeType.isEmpty) {
+      return;
+    }
+
     final url =
         await _getDownloadUrl(name, downloadMode: _downloadModePlayOnline);
 
-    emit(state.clone()..openVideoPageEvent = OpenVideoPageEvent(url));
+    if (mimeType.startsWith("video")) {
+      emit(state.clone()..openVideoPageEvent = OpenVideoPageEvent(url));
+    } else {
+      launchUrlString(url);
+    }
   }
 }
