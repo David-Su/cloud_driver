@@ -10,8 +10,8 @@ class ChannelConfig {
 class NetworkConfig {
   NetworkConfig._internal();
 
-  static final String urlBase = "$_httpScheme://$_host/CloudDriver";
-  static final String wsUrlBase = "$_wsScheme://$_host/CloudDriver";
+  static final String urlBase = "$_httpScheme://$_host";
+  static final String wsUrlBase = "$_wsScheme://$_host";
   static const String apiLogin = "/login";
   static const String apiListFile = "/listfile";
   static const String apiCreateDir = "/createdir";
@@ -39,14 +39,13 @@ class NetworkConfig {
   static String get _host {
     switch (ChannelConfig.channel) {
       case ChannelConfig.channelInternet:
-        return "www.fqym.top/server";
+        return "cloud-driver.fqym.top/api/server";
       case ChannelConfig.channelInternetProxy:
-        return "www.fqym.top/proxy";
+        return "cloud-driver.fqym.top/api/proxy";
       case ChannelConfig.channelIntranet:
         return "192.168.0.250:8080";
     }
     return "127.0.0.1:8080";
-    // return "192.168.31.111:8080";
   }
 
   static String get _httpScheme {
