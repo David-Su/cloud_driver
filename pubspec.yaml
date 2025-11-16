@@ -59,7 +59,7 @@ dependencies:
 
   video_player: ^2.9.2
 
-  share_plus: ^9.0.0
+  share_plus: ^10.1.4
 
   chewie: ^1.8.5
 
@@ -83,6 +83,8 @@ dependencies:
     git:
       url: https://github.com/fluttercommunity/flutter_workmanager.git
       ref: b783000
+
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:
